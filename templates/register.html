@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Register | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center min-vh-75">
+    <div class="col-md-5">
+        <div class="glass-card p-5 fade-in border-slate">
+            <div class="text-center mb-5">
+                <div class="brand mb-4 d-inline-block" style="font-size: 2rem; color: var(--secondary);">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2 class="fw-800">System Enrollment</h2>
+                <p class="text-muted">Initialize your personalized Chef AI environment.</p>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger rounded-3 mb-4 py-2 small text-center">
+                <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Email Address</label>
+                    <input type="email" name="email" class="form-control py-2 border-slate"
+                        placeholder="e.g. user@gmail.com" 
+                        pattern=".+@(gmail\.com|yahoo\.com|yahooo\.com|outlook\.com)" 
+                        title="Please use a Gmail, Yahoo, or Outlook address" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Username</label>
+                    <input type="text" name="username" class="form-control py-2 border-slate" placeholder="Choose ID"
+                        required>
+                </div>
+                <div class="mb-5">
+                    <label class="form-label small text-muted fw-bold">Password</label>
+                    <input type="password" name="password" class="form-control py-2 border-slate" placeholder="••••••••"
+                        required>
+                </div>
+                <button type="submit" class="btn-primary-viva w-100 py-3 mb-4"
+                    style="background: var(--primary); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);">Create
+                    System Identity</button>
+            </form>
+
+            <div class="text-center">
+                <p class="small text-muted mb-0">Already authenticated? <a href="/"
+                        class="text-primary text-decoration-none fw-bold">Sign-in here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,677 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Comparison - Chef AI{% endblock %}
+
+{% block content %}
+<style>
+    .hero-section { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 4.5rem 0; margin-bottom: 3.5rem; border-radius: 0 0 30px 30px; box-shadow: 0 10px 30px rgba(79, 70, 229, 0.15); }
+    .card { border: none; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 2rem; }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,0.08); }
+    .metric-card { padding: 2rem 1.2rem; text-align: center; height: 100%; border-radius: 20px; display: flex; flex-direction: column; justify-content: center; background-color: #ffffff; border: 1px solid rgba(0,0,0,0.02); }
+    .metric-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 1rem; font-weight: 700; }
+    .metric-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; display: inline-block; }
+    .col-exact    .metric-value { color: #6b7280; }
+    .col-tfidf    .metric-value { color: #f97316; }
+    .col-proposed .metric-value { color: #4f46e5; }
+    .section-icon { color: var(--primary); font-size: 1.8rem; margin-right: 15px; vertical-align: middle; }
+    .section-heading { font-weight: 800; color: #0f172a; margin-top: 2rem; margin-bottom: 3rem; padding-bottom: 1.25rem; border-bottom: 2px solid #e2e8f0; position: relative; letter-spacing: -0.5px; font-size: 1.6rem; }
+    .section-heading::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 80px; height: 4px; background-color: var(--primary); border-radius: 4px; }
+    .value-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600; margin-bottom: 4px; }
+    .model-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+    .badge-exact    { background: #f3f4f6; color: #374151; }
+    .badge-tfidf    { background: #fff7ed; color: #c2410c; }
+    .badge-proposed { background: #eef2ff; color: #3730a3; }
+    /* Table */
+    .cmp-table { border-radius: 20px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    .cmp-table thead th { font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; padding: 16px 14px; font-weight: 800; border-bottom: none; }
+    .cmp-table tbody td { padding: 14px 16px; font-size: 1rem; vertical-align: middle; color: #334155; border-color: #f1f5f9; }
+    .cmp-table tbody tr:hover td { background-color: #f8fafc; }
+    .cmp-section-row td { background: #f1f5f9 !important; font-weight: 800; font-size: 0.78rem; letter-spacing: 1.5px; text-transform: uppercase; color: #475569; padding: 12px 16px; border-top: 2px solid #e2e8f0 !important; }
+    .val-exact    { color: #6b7280; font-weight: 800; font-size: 1.1rem; font-family: 'Courier New', monospace; }
+    .val-tfidf    { color: #ea580c; font-weight: 800; font-size: 1.1rem; font-family: 'Courier New', monospace; }
+    .val-proposed { color: #4f46e5; font-weight: 800; font-size: 1.1rem; font-family: 'Courier New', monospace; }
+</style>
+
+<div class="hero-section text-center">
+    <h1 class="display-5 fw-bold mb-3"><i class="fas fa-balance-scale me-3"></i>Recommendation Models Comparison</h1>
+    <p class="lead mb-3 text-white-50">3-model benchmark against your specific kitchen inventory</p>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <span class="badge bg-white text-secondary rounded-pill px-3 py-2 fw-bold">Exact Match</span>
+        <span class="badge bg-white text-warning rounded-pill px-3 py-2 fw-bold">TF-IDF</span>
+        <span class="badge bg-white text-primary rounded-pill px-3 py-2 fw-bold">Proposed (BERT)</span>
+    </div>
+</div>
+
+<div class="container pb-5">
+    {% if error %}
+    <div class="alert alert-warning text-center">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% else %}
+
+    <!-- ── MODEL LEGEND ───────────────────────────────────────────── -->
+    <div class="row g-3 mb-5">
+        <div class="col text-center">
+            <div class="card p-3">
+                <div class="model-badge badge-exact mb-1">B1 — Exact Match</div>
+                <div class="small text-muted">Pure string matching<br>No semantic signal</div>
+            </div>
+        </div>
+        <div class="col text-center">
+            <div class="card p-3">
+                <div class="model-badge badge-tfidf mb-1">B2 — TF-IDF</div>
+                <div class="small text-muted">Keyword frequency<br>Cosine similarity</div>
+            </div>
+        </div>
+        <div class="col text-center">
+            <div class="card p-3 border border-primary">
+                <div class="model-badge badge-proposed mb-1">Proposed — BERT</div>
+                <div class="small text-muted">Sentence embeddings<br>Expiry-weighted</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CLASSIFICATION METRICS ────────────────────────────────── -->
+    <style>
+        .metric-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        .metric-card-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.25px;
+            color: #64748b;
+            margin-bottom: 1.25rem;
+            font-weight: 700;
+        }
+        .proposed-box {
+            background: #f5f3ff;
+            border-radius: 12px;
+            padding: 8px 10px;
+            min-width: 90px;
+            border: 1px solid #e0e7ff;
+            text-align: center;
+        }
+        .proposed-label {
+            font-size: 0.55rem;
+            color: #4f46e5;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .proposed-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #4f46e5;
+            line-height: 1;
+        }
+        .baseline-label {
+            font-size: 0.55rem;
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .baseline-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .metric-footer-text {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 1rem;
+        }
+    </style>
+
+    <h4 class="section-heading"><i class="fas fa-trophy section-icon"></i>Classification Performance</h4>
+    <div class="row g-4 mb-4">
+
+        <!-- F1 Score -->
+        <div class="col-md-3">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">F1 Score (Overall)</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.f1_overall }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#f97316;">{{ tfidf.f1_overall }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.f1_overall }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Harmonic mean of precision & recall</div>
+            </div>
+        </div>
+
+        <!-- Precision -->
+        <div class="col-md-3">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Precision</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.precision }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#f97316;">{{ tfidf.precision }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.precision }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Accuracy of positive predictions</div>
+            </div>
+        </div>
+
+        <!-- Recall -->
+        <div class="col-md-3">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Recall</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.recall }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#f97316;">{{ tfidf.recall }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.recall }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Ability to find all positive instances</div>
+            </div>
+        </div>
+
+        <!-- Accuracy -->
+        <div class="col-md-3">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Accuracy</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.accuracy }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#f97316;">{{ tfidf.accuracy }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.accuracy }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Ratio of correct predictions to total</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── RANKING METRICS ───────────────────────────────────────── -->
+    <h4 class="section-heading"><i class="fas fa-list-ol section-icon"></i>Ranking Metrics (Top-50)</h4>
+    <div class="row g-4 mb-4">
+
+        <!-- NDCG@50 -->
+        <div class="col-md-4">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">NDCG@50</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.ndcg_k }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#ea580c;">{{ tfidf.ndcg_k }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.ndcg_k }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Ranking quality — higher is better</div>
+            </div>
+        </div>
+
+        <!-- MRR -->
+        <div class="col-md-4">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Mean Reciprocal Rank</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.mrr }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#ea580c;">{{ tfidf.mrr }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.mrr }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">How quickly the first relevant result appears</div>
+            </div>
+        </div>
+
+        <!-- Hit Rate -->
+        <div class="col-md-4">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Hit Rate@50</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.hit_rate_k }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#ea580c;">{{ tfidf.hit_rate_k }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.hit_rate_k }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">At least one relevant result in top 50</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SUSTAINABILITY ────────────────────────────────────────── -->
+    <h4 class="section-heading"><i class="fas fa-leaf section-icon"></i>Sustainability & Efficiency</h4>
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Catalog Coverage</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.catalog_coverage }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#ea580c;">{{ tfidf.catalog_coverage }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.catalog_coverage }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">% of recipes matchable with current inventory</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card metric-card border-0 shadow-sm">
+                <div class="metric-card-title">Food Waste Reduction Index</div>
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <div class="text-center">
+                        <div class="baseline-label">EXACT</div>
+                        <div class="baseline-value">{{ exact.fwri }}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="baseline-label">TF-IDF</div>
+                        <div class="baseline-value" style="color:#ea580c;">{{ tfidf.fwri }}</div>
+                    </div>
+                    <div class="proposed-box">
+                        <div class="proposed-label">PROPOSED</div>
+                        <div class="proposed-value">{{ proposed.fwri }}</div>
+                    </div>
+                </div>
+                <div class="metric-footer-text">Efficiency in prioritizing near-expiry items</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CHARTS ────────────────────────────────────────────────── -->
+    <h4 class="section-heading"><i class="fas fa-chart-bar section-icon"></i>Visual Comparison</h4>
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h5 class="fw-bold mb-4 text-center">Classification Metrics — All Models</h5>
+                <div style="height:320px;">
+                    <canvas id="classificationChart"
+                        data-exact-f1="{{ exact.f1_overall }}"
+                        data-exact-prec="{{ exact.precision }}"
+                        data-exact-rec="{{ exact.recall }}"
+                        data-exact-acc="{{ exact.accuracy }}"
+                        data-tfidf-f1="{{ tfidf.f1_overall }}"
+                        data-tfidf-prec="{{ tfidf.precision }}"
+                        data-tfidf-rec="{{ tfidf.recall }}"
+                        data-tfidf-acc="{{ tfidf.accuracy }}"
+                        data-proposed-f1="{{ proposed.f1_overall }}"
+                        data-proposed-prec="{{ proposed.precision }}"
+                        data-proposed-rec="{{ proposed.recall }}"
+                        data-proposed-acc="{{ proposed.accuracy }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h5 class="fw-bold mb-4 text-center">Ranking & Sustainability — All Models</h5>
+                <div style="height:320px;">
+                    <canvas id="rankingChart"
+                        data-exact-ndcg="{{ exact.ndcg_k }}"
+                        data-exact-mrr="{{ exact.mrr }}"
+                        data-exact-fwri="{{ exact.fwri }}"
+                        data-tfidf-ndcg="{{ tfidf.ndcg_k }}"
+                        data-tfidf-mrr="{{ tfidf.mrr }}"
+                        data-tfidf-fwri="{{ tfidf.fwri }}"
+                        data-proposed-ndcg="{{ proposed.ndcg_k }}"
+                        data-proposed-mrr="{{ proposed.mrr }}"
+                        data-proposed-fwri="{{ proposed.fwri }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Radar comparison -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card p-4 shadow-sm">
+                <h5 class="fw-bold mb-4 text-center">Head-to-Head Radar — All Models</h5>
+                <div style="height:380px;">
+                    <canvas id="radarChart"
+                        data-exact-p="{{ exact.precision }}"   data-exact-r="{{ exact.recall }}"   data-exact-f="{{ exact.f1_overall }}"   data-exact-a="{{ exact.accuracy }}"   data-exact-c="{{ exact.catalog_coverage }}"   data-exact-w="{{ exact.fwri }}"
+                        data-tfidf-p="{{ tfidf.precision }}"   data-tfidf-r="{{ tfidf.recall }}"   data-tfidf-f="{{ tfidf.f1_overall }}"   data-tfidf-a="{{ tfidf.accuracy }}"   data-tfidf-c="{{ tfidf.catalog_coverage }}"   data-tfidf-w="{{ tfidf.fwri }}"
+                        data-prop-p="{{ proposed.precision }}" data-prop-r="{{ proposed.recall }}" data-prop-f="{{ proposed.f1_overall }}" data-prop-a="{{ proposed.accuracy }}" data-prop-c="{{ proposed.catalog_coverage }}" data-prop-w="{{ proposed.fwri }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FULL METRICS TABLE ────────────────────────────────────── -->
+    <div class="mt-5 pt-3">
+        <h4 class="section-heading text-center mx-auto" style="max-width:max-content;">
+            <i class="fas fa-table me-2 text-primary"></i>Complete Metrics Comparison Table
+        </h4>
+        <p class="text-center text-muted mb-5">Side-by-side summary of every evaluated metric across all 3 models</p>
+
+        <div class="table-responsive cmp-table mb-5">
+            <table class="table table-bordered mb-0 bg-white">
+                <thead style="background: linear-gradient(135deg, #4f46e5 0%, #3b30c4 100%); color: white;">
+                    <tr>
+                        <th style="min-width:220px;">Metric</th>
+                        <th class="text-center" style="min-width:110px;">Exact<br><span style="font-size:0.6rem;opacity:0.75;">B1</span></th>
+                        <th class="text-center" style="min-width:110px;">TF-IDF<br><span style="font-size:0.6rem;opacity:0.75;">B2</span></th>
+                        <th class="text-center" style="min-width:120px;background:rgba(255,255,255,0.15);">Proposed<br><span style="font-size:0.6rem;opacity:0.75;">BERT</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="cmp-section-row"><td colspan="4"><i class="fas fa-tags me-2"></i>Classification Metrics</td></tr>
+                    <tr>
+                        <td><strong>Precision</strong></td>
+                        <td class="text-center val-exact">{{ exact.precision }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.precision }}</td>
+                        <td class="text-center val-proposed">{{ proposed.precision }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recall</strong></td>
+                        <td class="text-center val-exact">{{ exact.recall }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.recall }}</td>
+                        <td class="text-center val-proposed">{{ proposed.recall }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>F1 Score</strong></td>
+                        <td class="text-center val-exact">{{ exact.f1_overall }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.f1_overall }}</td>
+                        <td class="text-center val-proposed">{{ proposed.f1_overall }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td class="text-center val-exact">{{ exact.accuracy }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.accuracy }}</td>
+                        <td class="text-center val-proposed">{{ proposed.accuracy }}</td>
+                    </tr>
+
+                    <tr class="cmp-section-row"><td colspan="4"><i class="fas fa-list-ol me-2"></i>Ranking Metrics (Top-50)</td></tr>
+                    <tr>
+                        <td><strong>NDCG@50</strong></td>
+                        <td class="text-center val-exact">{{ exact.ndcg_k }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.ndcg_k }}</td>
+                        <td class="text-center val-proposed">{{ proposed.ndcg_k }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NDCG@8</strong></td>
+                        <td class="text-center val-exact">{{ exact.ndcg_8 }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.ndcg_8 }}</td>
+                        <td class="text-center val-proposed">{{ proposed.ndcg_8 }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hit Rate@50</strong></td>
+                        <td class="text-center val-exact">{{ exact.hit_rate_k }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.hit_rate_k }}</td>
+                        <td class="text-center val-proposed">{{ proposed.hit_rate_k }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>MRR</strong></td>
+                        <td class="text-center val-exact">{{ exact.mrr }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.mrr }}</td>
+                        <td class="text-center val-proposed">{{ proposed.mrr }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Precision@50</strong></td>
+                        <td class="text-center val-exact">{{ exact.precision_k }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.precision_k }}</td>
+                        <td class="text-center val-proposed">{{ proposed.precision_k }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recall@50</strong></td>
+                        <td class="text-center val-exact">{{ exact.recall_k }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.recall_k }}</td>
+                        <td class="text-center val-proposed">{{ proposed.recall_k }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AP@50</strong></td>
+                        <td class="text-center val-exact">{{ exact.ap_k }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.ap_k }}</td>
+                        <td class="text-center val-proposed">{{ proposed.ap_k }}</td>
+                    </tr>
+
+                    <tr class="cmp-section-row"><td colspan="4"><i class="fas fa-leaf me-2"></i>Sustainability Metrics</td></tr>
+                    <tr>
+                        <td><strong>Catalog Coverage</strong></td>
+                        <td class="text-center val-exact">{{ exact.catalog_coverage }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.catalog_coverage }}</td>
+                        <td class="text-center val-proposed">{{ proposed.catalog_coverage }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FWRI</strong></td>
+                        <td class="text-center val-exact">{{ exact.fwri }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.fwri }}</td>
+                        <td class="text-center val-proposed">{{ proposed.fwri }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Weighted Expiry</strong></td>
+                        <td class="text-center val-exact">{{ exact.weighted_expiry }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.weighted_expiry }}</td>
+                        <td class="text-center val-proposed">{{ proposed.weighted_expiry }}</td>
+                    </tr>
+
+                    <tr class="cmp-section-row"><td colspan="4"><i class="fas fa-th me-2"></i>Confusion Matrix</td></tr>
+                    <tr>
+                        <td><strong>True Positives</strong></td>
+                        <td class="text-center val-exact">{{ exact.tp }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.tp }}</td>
+                        <td class="text-center val-proposed">{{ proposed.tp }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>False Positives</strong></td>
+                        <td class="text-center val-exact">{{ exact.fp }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.fp }}</td>
+                        <td class="text-center val-proposed">{{ proposed.fp }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>False Negatives</strong></td>
+                        <td class="text-center val-exact">{{ exact.fn }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.fn }}</td>
+                        <td class="text-center val-proposed">{{ proposed.fn }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>True Negatives</strong></td>
+                        <td class="text-center val-exact">{{ exact.tn }}</td>
+                        <td class="text-center val-tfidf">{{ tfidf.tn }}</td>
+                        <td class="text-center val-proposed">{{ proposed.tn }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── METRIC DICTIONARY ─────────────────────────────────────── -->
+    <div class="mt-5 pt-3">
+        <h4 class="section-heading text-center mx-auto" style="max-width:max-content;">
+            <i class="fas fa-book-open me-2 text-primary"></i>Metric Dictionary
+        </h4>
+        <div class="row g-4 mt-2">
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">F1 Score</h6>
+                    <p class="text-muted mb-0">Harmonic mean of precision and recall — overall classification quality.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">NDCG@K</h6>
+                    <p class="text-muted mb-0">Ranking quality — gives more weight to relevant results at the top.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">MRR</h6>
+                    <p class="text-muted mb-0">Mean Reciprocal Rank — average rank position of the first relevant result.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">Hit Rate@K</h6>
+                    <p class="text-muted mb-0">% of queries where at least one relevant recipe appears in the top K.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">Catalog Coverage</h6>
+                    <p class="text-muted mb-0">% of total recipes the model can recommend with the current inventory.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 bg-white shadow-sm" style="border-radius:20px;">
+                    <h6 class="fw-bold text-primary text-uppercase mb-2">FWRI</h6>
+                    <p class="text-muted mb-0">Food Waste Reduction Index — efficiency in surfacing near-expiry items.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+{% if not error %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // ── Read all values from data attributes (no Jinja2 in JS) ──────────────
+    var cc  = document.getElementById('classificationChart');
+    var rc  = document.getElementById('rankingChart');
+    var rad = document.getElementById('radarChart');
+
+    var models   = ['Exact', 'TF-IDF', 'Proposed'];
+    var colors   = ['#6b7280', '#f97316', '#4f46e5'];
+    var alphas   = ['rgba(107,114,128,0.2)', 'rgba(249,115,22,0.2)', 'rgba(79,70,229,0.2)'];
+
+    // Classification chart data
+    var f1s   = [parseFloat(cc.dataset.exactF1),   parseFloat(cc.dataset.tfidfF1),         parseFloat(cc.dataset.proposedF1)];
+    var precs = [parseFloat(cc.dataset.exactPrec), parseFloat(cc.dataset.tfidfPrec),   parseFloat(cc.dataset.proposedPrec)];
+    var recs  = [parseFloat(cc.dataset.exactRec),  parseFloat(cc.dataset.tfidfRec),      parseFloat(cc.dataset.proposedRec)];
+    var accs  = [parseFloat(cc.dataset.exactAcc),  parseFloat(cc.dataset.tfidfAcc),      parseFloat(cc.dataset.proposedAcc)];
+
+    // Ranking chart data
+    var ndcgs = [parseFloat(rc.dataset.exactNdcg), parseFloat(rc.dataset.tfidfNdcg),   parseFloat(rc.dataset.proposedNdcg)];
+    var mrrs  = [parseFloat(rc.dataset.exactMrr),  parseFloat(rc.dataset.tfidfMrr),      parseFloat(rc.dataset.proposedMrr)];
+    var fwris = [parseFloat(rc.dataset.exactFwri), parseFloat(rc.dataset.tfidfFwri),   parseFloat(rc.dataset.proposedFwri)];
+
+    // Radar data
+    var radP = [parseFloat(rad.dataset.exactP), parseFloat(rad.dataset.tfidfP),   parseFloat(rad.dataset.propP)];
+    var radR = [parseFloat(rad.dataset.exactR), parseFloat(rad.dataset.tfidfR), parseFloat(rad.dataset.propR)];
+    var radF = [parseFloat(rad.dataset.exactF), parseFloat(rad.dataset.tfidfF), parseFloat(rad.dataset.propF)];
+    var radA = [parseFloat(rad.dataset.exactA), parseFloat(rad.dataset.tfidfA), parseFloat(rad.dataset.propA)];
+    var radC = [parseFloat(rad.dataset.exactC), parseFloat(rad.dataset.tfidfC), parseFloat(rad.dataset.propC)];
+    var radW = [parseFloat(rad.dataset.exactW), parseFloat(rad.dataset.tfidfW), parseFloat(rad.dataset.propW)];
+
+    var barOpts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'bottom' } },
+        scales: { y: { beginAtZero: true, max: 1 } }
+    };
+
+    // 1. Classification grouped bar
+    new Chart(cc.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['F1 Score', 'Precision', 'Recall', 'Accuracy'],
+            datasets: models.map(function(m, i) {
+                return { label: m, data: [f1s[i], precs[i], recs[i], accs[i]], backgroundColor: colors[i], borderRadius: 4 };
+            })
+        },
+        options: barOpts
+    });
+
+    // 2. Ranking grouped bar
+    new Chart(rc.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['NDCG@50', 'MRR', 'FWRI'],
+            datasets: models.map(function(m, i) {
+                return { label: m, data: [ndcgs[i], mrrs[i], fwris[i]], backgroundColor: colors[i], borderRadius: 4 };
+            })
+        },
+        options: barOpts
+    });
+
+    // 3. Radar — one dataset per model
+    new Chart(rad.getContext('2d'), {
+        type: 'radar',
+        data: {
+            labels: ['Precision', 'Recall', 'F1 Score', 'Accuracy', 'Catalog Cov', 'FWRI'],
+            datasets: models.map(function(m, i) {
+                return {
+                    label: m,
+                    data: [radP[i], radR[i], radF[i], radA[i], radC[i], radW[i]],
+                    borderColor: colors[i],
+                    backgroundColor: alphas[i],
+                    pointBackgroundColor: colors[i]
+                };
+            })
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { r: { suggestedMin: 0, suggestedMax: 1 } },
+            plugins: { legend: { display: true, position: 'bottom' } }
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}

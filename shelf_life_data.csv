@@ -1,0 +1,602 @@
+Ingredient,Refrigerator_Shelf_Life_Days,Pantry_Shelf_Life_Days
+Carrots,18,7
+Potatoes,21,60
+Tomatoes,6,4
+Onions,21,30
+Broccoli,7,2
+Spinach,4,1
+Cabbage,14,7
+Cauliflower,7,3
+Bell Peppers,7,3
+Zucchini,5,2
+Eggplant,10,10
+Cucumbers,7,2
+Green Beans,7,2
+Peas,5,2
+Garlic,30,90
+Ginger,21,30
+Beetroot,14,7
+Mushrooms,5,1
+Radishes,10,3
+Celery,10,5
+Apples,28,7
+Bananas,7,5
+Oranges,21,7
+Grapes,10,2
+Mangoes,6,4
+Pineapples,5,2
+Papayas,5,2
+Watermelons,7,3
+Strawberries,5,1
+Pomegranates,14,5
+Avocados,5,3
+Toor Dal,365,365
+Chana Dal,365,365
+Moong Dal,365,365
+Masoor Dal,365,365
+Urad Dal,365,365
+Black Gram,365,365
+Kabuli Chana,540,540
+Basmati Rice,730,730
+Sona Masoori Rice,730,730
+Wheat Flour,180,240
+Maida,180,240
+Besan,120,180
+Pasta,365,365
+Noodles,365,365
+Breakfast Cereal,180,180
+Turmeric Powder,730,730
+Red Chili Powder,730,730
+Cumin Seeds,900,900
+Mustard Seeds,900,900
+Coriander Powder,365,365
+Garam Masala,300,300
+Tea,365,365
+Salt,1825,1825
+Sugar,1825,1825
+Milk,5,0
+Butter,60,7
+Ghee,180,180
+Eggs,21,2
+Bread - White,5,3
+Bread - Brown,5,3
+Cooking Oil,300,300
+Ketchup,180,365
+Jam,180,365
+Biscuit Pack,180,180
+Dry Fruits Mix,180,120
+amchur,120,120
+cauliflower,15,12
+fennel seeds,120,120
+cardamompods,150,50
+cinnamon sticks,150,50
+star anise,150,50
+amchur,180,80
+black peppercorns,150,60
+chaat masala,300,300
+coriander seeds,300,80
+soy chunks,100,50
+strawberry,10,3
+turmeric,180,80
+red chilli powder,365,100
+cumin,180,80
+coriander,180,80
+green peas,20,5
+all purpose flour,180,100
+cook oil,360,360
+Apple,42,7
+Banana,7,4
+Mango,14,5
+Orange,21,10
+Grapes,7,2
+Watermelon,14,7
+Pineapple,7,3
+Papaya,7,3
+Guava,5,3
+Pomegranate,14,7
+Strawberry,5,1
+Blueberry,7,2
+Raspberry,3,1
+Blackberry,4,1
+Kiwi,14,5
+Pear,7,4
+Peach,5,3
+Plum,5,3
+Cherry,7,2
+Apricot,5,2
+Lemon,21,7
+Lime,14,5
+Coconut,14,60
+Dates,30,180
+Fig,5,7
+Jackfruit,7,3
+Litchi,5,2
+Custard Apple,3,2
+Dragon Fruit,10,3
+Sapota,3,2
+Tamarind,90,365
+Amla,14,7
+Starfruit,7,3
+Passion Fruit,7,2
+Mulberry,3,1
+Gooseberry,10,3
+Cranberry,14,3
+Cantaloupe,14,5
+Honeydew,14,7
+Grapefruit,21,7
+Tangerine,14,7
+Mandarin,14,7
+Clementine,14,7
+Pomelo,21,14
+Avocado,5,3
+Persimmon,7,3
+Quince,14,7
+Loquat,5,2
+Breadfruit,5,3
+Soursop,3,2
+Rambutan,5,2
+Mangosteen,5,2
+Durian,5,2
+Longan,5,2
+Carambola,7,3
+Feijoa,5,3
+Cherimoya,4,2
+Jambolan,3,1
+Bael Fruit,7,5
+Phalsa,2,1
+Kokum,7,60
+Wood Apple,7,5
+Palmyra Fruit,5,3
+Ice Apple,3,2
+Malay Apple,3,2
+Rose Apple,3,2
+Wax Apple,3,2
+Jaboticaba,3,1
+Cupuacu,5,2
+Acai Berry,3,1
+Camu Camu,3,1
+Lucuma,5,3
+Naranjilla,5,3
+Pepino,7,3
+Tamarillo,7,3
+Cape Gooseberry,5,3
+Tomatillo,7,5
+Plantain,7,4
+Black Currant,5,2
+Red Currant,5,2
+White Currant,5,2
+Elderberry,3,1
+Boysenberry,3,1
+Loganberry,3,1
+Dewberry,3,1
+Huckleberry,5,2
+Salak,5,3
+Finger Lime,7,3
+Blood Orange,21,7
+Ugli Fruit,14,7
+Buddha Hand,14,7
+Yuzu,14,7
+Melon,14,5
+Nance,3,2
+Pitanga,3,1
+Buriti,3,2
+Ackee,3,2
+Marionberry,3,1
+Monkey Fruit,3,2
+Noni,3,2
+Potato,21,60
+Tomato,6,4
+Onion,21,30
+Garlic,21,60
+Ginger,21,14
+Carrot,18,7
+Spinach,4,1
+Cabbage,14,7
+Cauliflower,7,3
+Broccoli,7,2
+Capsicum,7,3
+Cucumber,7,3
+Brinjal,7,3
+Okra,4,2
+Pumpkin,14,60
+Bitter Gourd,5,2
+Bottle Gourd,7,3
+Ridge Gourd,5,2
+Snake Gourd,5,2
+Ivy Gourd,5,2
+Ash Gourd,30,90
+Pointed Gourd,5,2
+Beetroot,14,7
+Radish,7,3
+Turnip,14,7
+Parsnip,14,7
+Sweet Potato,21,30
+Yam,21,30
+Taro,14,14
+Colocasia,14,7
+Raw Banana,7,4
+Raw Papaya,7,3
+Drumstick,7,3
+Cluster Bean,5,2
+Broad Bean,5,2
+French Bean,5,2
+Peas,5,2
+Corn,3,2
+Baby Corn,3,2
+Sweet Corn,3,2
+Mushroom,5,2
+Celery,7,2
+Leek,7,3
+Asparagus,4,2
+Zucchini,7,3
+Artichoke,7,3
+Brussels Sprout,5,2
+Kale,5,2
+Lettuce,5,1
+Bok Choy,5,2
+Swiss Chard,5,2
+Watercress,3,1
+Arugula,3,1
+Endive,5,2
+Radicchio,7,3
+Fennel,7,3
+Kohlrabi,14,7
+Rutabaga,14,7
+Celeriac,14,7
+Lotus Stem,7,3
+Bamboo Shoot,5,2
+Banana Flower,3,2
+Raw Jackfruit,5,3
+Fenugreek Leaves,3,1
+Coriander Leaves,3,1
+Mint Leaves,3,1
+Curry Leaves,5,2
+Spring Onion,5,2
+Shallot,14,30
+Green Chilli,7,3
+Red Chilli,7,3
+Moringa Leaves,3,1
+Sorrel Leaves,3,1
+Purslane,3,1
+Amaranth Leaves,3,1
+Drumstick Leaves,3,1
+Colocasia Leaves,3,1
+White Radish,7,3
+Purple Cabbage,14,7
+Iceberg Lettuce,5,2
+Romaine Lettuce,5,2
+Butterhead Lettuce,5,2
+Green Onion,5,2
+Pak Choi,5,2
+Mizuna,3,1
+Tatsoi,3,1
+Collard Greens,5,2
+Mustard Greens,5,2
+Beet Greens,3,1
+Turnip Greens,3,1
+Dandelion Greens,3,1
+Chicory,5,2
+Escarole,5,2
+Napa Cabbage,14,7
+Savoy Cabbage,14,7
+Suran,14,14
+Elephant Foot Yam,14,21
+Water Chestnut,14,7
+Sunchoke,14,7
+Purple Yam,14,21
+Turmeric Powder,180,365
+Cumin Seeds,90,365
+Coriander Powder,180,365
+Red Chilli Powder,180,365
+Garam Masala,90,365
+Black Pepper,90,365
+Cardamom,90,365
+Cloves,90,365
+Cinnamon,90,365
+Fennel Seeds,90,365
+Mustard Seeds,90,365
+Fenugreek Seeds,90,365
+Asafoetida,90,365
+Bay Leaf,90,365
+Star Anise,90,365
+Mace,90,365
+Nutmeg,90,365
+Carom Seeds,90,365
+Nigella Seeds,90,365
+Poppy Seeds,90,180
+Sesame Seeds,90,180
+Dry Mango Powder,90,365
+Chaat Masala,90,365
+Sambar Powder,90,365
+Rasam Powder,90,365
+Chole Masala,90,365
+Pav Bhaji Masala,90,365
+Biryani Masala,90,365
+Kitchen King Masala,90,365
+Tandoori Masala,90,365
+Cumin Powder,180,365
+Cardamom Powder,90,365
+Pepper Powder,90,365
+Dry Ginger Powder,180,365
+Garlic Powder,90,365
+Onion Powder,90,365
+Paprika,90,365
+Saffron,365,730
+Vanilla Powder,90,365
+Curry Powder,90,365
+Allspice,90,365
+Sumac,90,365
+Thyme,90,180
+Oregano,90,180
+Rosemary,90,180
+Basil Powder,90,180
+Sage,90,180
+Dill Seeds,90,365
+Celery Seeds,90,365
+Tamarind Powder,90,365
+Basmati Rice,180,365
+Sona Masoori Rice,180,365
+Brown Rice,180,180
+White Rice,180,365
+Parboiled Rice,180,365
+Red Rice,180,365
+Black Rice,180,365
+Wild Rice,180,365
+Glutinous Rice,180,365
+Jasmine Rice,180,365
+Arborio Rice,180,365
+Idli Rice,180,365
+Ponni Rice,180,365
+Kolam Rice,180,365
+Seeraga Samba Rice,180,365
+Wheat Flour,90,180
+Whole Wheat Flour,60,90
+All Purpose Flour,90,180
+Semolina,90,180
+Bread Flour,60,90
+Cake Flour,60,90
+Oats,180,365
+Rolled Oats,180,365
+Steel Cut Oats,180,365
+Barley,180,365
+Pearl Barley,180,365
+Barley Flour,90,180
+Quinoa,180,365
+Amaranth,180,365
+Buckwheat,180,365
+Foxtail Millet,180,365
+Pearl Millet,180,365
+Finger Millet,180,365
+Sorghum,180,365
+Kodo Millet,180,365
+Little Millet,180,365
+Proso Millet,180,365
+Barnyard Millet,180,365
+Browntop Millet,180,365
+Corn Flour,90,180
+Cornmeal,90,180
+Cornstarch,90,365
+Popcorn Kernels,90,365
+Polenta,90,180
+Pasta,90,365
+Spaghetti,90,365
+Penne,90,365
+Macaroni,90,365
+Fusilli,90,365
+Noodles,90,180
+Rice Noodles,90,180
+Vermicelli,90,180
+Flattened Rice,90,180
+Puffed Rice,30,90
+Rice Flour,90,180
+Chickpea Flour,90,180
+Rye,180,365
+Rye Flour,90,180
+Spelt,180,365
+Spelt Flour,90,180
+Farro,180,365
+Freekeh,180,365
+Bulgur Wheat,90,365
+Couscous,90,365
+Cracked Wheat,90,365
+Wheat Bran,90,180
+Wheat Germ,30,90
+Oat Bran,90,180
+Sago,180,365
+Tapioca Pearls,90,365
+Arrowroot Powder,90,365
+Cassava Flour,90,180
+Teff,180,365
+Teff Flour,90,180
+Almond Flour,30,60
+Coconut Flour,30,90
+Soy Flour,60,90
+Multigrain Flour,60,90
+Bread Crumbs,30,90
+Panko,30,90
+White Bread,7,5
+Brown Bread,7,5
+Sourdough Bread,7,5
+Naan,5,3
+Roti,3,1
+Pita Bread,7,5
+Bagel,7,5
+Baguette,3,2
+Ciabatta,3,2
+Flatbread,5,3
+Corn Tortilla,7,7
+Wheat Tortilla,7,14
+Dinner Roll,5,3
+Triticale,180,365
+Kamut,180,365
+Flaxseed Meal,30,90
+Millet Flour,90,180
+Jowar Flour,90,180
+Ragi Flour,90,180
+Jowar,180,365
+Moong Dal,90,365
+Masoor Dal,90,365
+Toor Dal,90,365
+Chana Dal,90,365
+Urad Dal,90,365
+Rajma,90,365
+Kabuli Chana,90,365
+Kala Chana,90,365
+Chickpeas,90,365
+Lentils,90,365
+Green Moong,90,365
+Whole Masoor,90,365
+Whole Urad,90,365
+Kidney Beans,90,365
+Black Eyed Peas,90,365
+Cowpea,90,365
+Field Peas,90,365
+Split Peas,90,365
+Yellow Peas,90,365
+Pigeon Peas,90,365
+Moth Beans,90,365
+Horse Gram,90,365
+Lima Beans,90,365
+Butter Beans,90,365
+Fava Beans,90,365
+Navy Beans,90,365
+Pinto Beans,90,365
+Black Beans,90,365
+Adzuki Beans,90,365
+Mung Beans,90,365
+Soybeans,90,365
+Lupini Beans,14,365
+Cannellini Beans,90,365
+Great Northern Beans,90,365
+Flageolet Beans,90,365
+Borlotti Beans,90,365
+Scarlet Runner Beans,90,365
+Tepary Beans,90,365
+Lablab Beans,90,365
+Winged Beans,90,365
+Sword Beans,90,365
+Val Dal,90,365
+Kulthi Dal,90,365
+Chawli Dal,90,365
+Moath Dal,90,365
+Lobia,90,365
+Vatana,90,365
+Roasted Chana,30,90
+Roasted Moong,30,90
+Raw Peanuts,14,60
+Red Lentils,90,365
+Green Lentils,90,365
+Black Lentils,90,365
+French Lentils,90,365
+Beluga Lentils,90,365
+Puy Lentils,90,365
+Pardina Lentils,90,365
+Gigante Beans,90,365
+Corona Beans,90,365
+Ayocote Beans,90,365
+Rattlesnake Beans,90,365
+Rio Zape Beans,90,365
+Chickpea Sprouts,5,0
+Lentil Sprouts,4,0
+Mung Bean Sprouts,3,0
+Split Moong Dal,90,365
+Split Urad Dal,90,365
+Split Masoor Dal,90,365
+Split Chana Dal,90,365
+Split Pigeon Peas,90,365
+Yellow Moong Dal,90,365
+Green Gram,90,365
+Black Gram,90,365
+Red Gram,90,365
+White Gram,90,365
+Dried Green Peas,90,365
+Dried Yellow Peas,90,365
+Edamame,5,0
+Guar Beans,90,365
+Cluster Beans Dried,90,365
+Anasazi Beans,90,365
+Appaloosa Beans,90,365
+Calypso Beans,90,365
+Broad Beans,90,365
+Christmas Lima Beans,90,365
+Dragon Tongue Beans,90,365
+Jacob Cattle Beans,90,365
+Macachiados Beans,90,365
+Good Mother Stallard,90,365
+Domingo Rojo Beans,90,365
+Alubias Granja,90,365
+Soybean Sprouts,3,0
+Roasted Peanuts,14,30
+Velvet Beans,90,365
+Tolosana Beans,90,365
+Dried Moong Sprouts,7,0
+Dried Urad Sprouts,7,0
+Marrowfat Peas,90,365
+Desi Chana,90,365
+Bambara Groundnut,90,365
+Basil,3,1
+Coriander,10,1
+Mint,10,1
+Oregano,80,2
+Curry Leaves,10,2
+Bay Leaves,180,50
+Lemongrass,10,3
+Chicken,4,0
+Mutton,5,0
+Beef,3,0
+Pork,3,0
+Fish,4,0
+Prawns,2,0
+Crab,4,0
+Milk,7,2
+Curd,10,2
+Butter,60,7
+Ghee,180,365
+Paneer,10,5
+bread,5,2
+dry fruit mix,30,10
+biscuit,0,180
+breakfast cereal bo,10,30
+black salt,0,365
+tomato ketchup,80,30
+black chickpeas,50,80
+chicken breast,5,1
+fish fillet,5,1
+cream,10,2
+coconut milk,8,10
+idli dosa batter,8,3
+pepper,120,30
+boondi,0,30
+mint leaf,10,1
+pani puri,0,60
+green moong sprouts,10,2
+green chutney,30,3
+sweet chutney,30,3
+chili,30,10
+dry red chilli,0,30
+soy,0,30
+peppercorn,100,30
+cardamom pods,120,30
+flour,100,30
+lemon juice,30,10
+sesame oil,0,365
+rice,0,365
+curry leaf,15,2
+chili powder,100,30
+sunflower oil,0,365
+marie biscuit,0,80
+goda masala,120,30
+coconut oil,0,280
+masoor whol,0,120
+urad papad,0,120
+mayonnaise,120,30
+dhokla mix,120,30
+cornflakes,0,180
+toothpaste,0,120
+detergent,0,300
+dish soap,0,300
+vinegar,100,80
+kachori,0,6
+cracker,0,1000
+camphor,0,500
+chamomile,7,30

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center min-vh-75">
+    <div class="col-md-5">
+        <div class="glass-card p-5 fade-in border-slate">
+            <div class="text-center mb-5">
+                <div class="brand mb-4 d-inline-block" style="font-size: 2.5rem;">
+                    <i class="fas fa-layer-group"></i> CHEF AI
+                </div>
+                <h2 class="fw-800">System Access</h2>
+                <p class="text-muted">Authentication required for inventory management.</p>
+            </div>
+            
+            {% if error %}
+            <div class="alert alert-danger rounded-3 mb-4 py-2 small text-center">
+                <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+            </div>
+            {% endif %}
+
+            {% if success %}
+            <div class="alert alert-success rounded-3 mb-4 py-2 small text-center">
+                <i class="fas fa-check-circle me-2"></i>{{ success }}
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Email or Username</label>
+                    <input type="text" name="login_id" class="form-control py-2 border-slate"
+                        placeholder="Enter credentials" required>
+                </div>
+                <div class="mb-5">
+                    <label class="form-label small text-muted fw-bold">Secret Key / Password</label>
+                    <input type="password" name="password" class="form-control py-2 border-slate" placeholder="••••••••"
+                        required>
+                </div>
+                <button type="submit" class="btn-primary-viva w-100 py-3 mb-4">Authenticate</button>
+            </form>
+
+            <div class="text-center">
+                <p class="small text-muted mb-2">Initial registration required? <a href="/register"
+                        class="text-primary text-decoration-none fw-bold">Create System Identity</a></p>
+                <p class="small text-muted mb-0">Forgotten credentials? <a href="/forgot_password"
+                        class="text-primary text-decoration-none fw-bold">Reset Password</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

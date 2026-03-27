@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero fade-in">
+    <div class="container">
+        <h6 class="text-primary fw-bold text-uppercase ls-wide mb-3">Next-Generation Kitchen management</h6>
+        <h1 class="display-4 fw-800 mb-3">"What should I cook today?"</h1>
+        <h2 class="h4 text-muted mb-4">Every day this question arises. Chef AI provides the answer.</h2>
+        <p class="lead text-muted mb-5">An automated recipe recommendation system that uses your <span class="highlight">grocery receipt data</span> to eliminate indecision and manage your kitchen inventory with precision.</p>
+
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/recipes" class="btn-primary-viva">Get Started</a>
+            <a href="/upload" class="btn-secondary-viva">Scan Grocery Bill</a>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- Key Feature Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="glass-card text-center h-100">
+                <div class="mb-4">
+                    <i class="fas fa-brain fa-3x text-primary"></i>
+                </div>
+                <h4 class="fw-bold mb-3">Semantic Matching</h4>
+                <p class="text-muted">Our core engine uses Sentence Transformers to understand ingredient relationships,
+                    providing recommendations that actually make sense.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card text-center h-100">
+                <div class="mb-4">
+                    <i class="fas fa-camera-retro fa-3x text-secondary"></i>
+                </div>
+                <h4 class="fw-bold mb-3">OCR Processing</h4>
+                <p class="text-muted">High-precision optical character recognition (PaddleOCR) extracts items from
+                    grocery bills and automatically calculates shelf life.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card text-center h-100">
+                <div class="mb-4">
+                    <i class="fas fa-chart-line fa-3x text-accent"></i>
+                </div>
+                <h4 class="fw-bold mb-3">Sustainability Index</h4>
+                <p class="text-muted">Track your environmental impact with our Food Waste Reduction Index, prioritizing
+                    items based on expiry probability.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Documentation (Viva Section) -->
+    <div class="glass-card py-5 px-lg-5 mb-5">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <h6 class="text-primary fw-bold text-uppercase mb-3">Viva Presentation Guide</h6>
+                <h2 class="fw-800 mb-4">The Innovation behind <span class="highlight">Chef AI</span></h2>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-2"><i class="fas fa-exclamation-circle text-danger me-2"></i> The Problem</h5>
+                    <p class="text-muted">Household food waste contributes significantly to global emissions. Most waste
+                        occurs due to "invisible" inventory—ingredients ignored simply because they aren't tracked.</p>
+                </div>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-2"><i class="fas fa-check-circle text-secondary me-2"></i> The Solution</h5>
+                    <p class="text-muted">Chef AI bridges this gap by creating a real-time digital twin of your
+                        kitchen. It provides actionable intelligence by suggesting recipes that maximize current
+                        inventory utility.</p>
+                </div>
+
+                <div class="pt-3">
+                    <h5 class="fw-bold mb-4">Core Technologies Used:</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge-viva border border-slate-200 text-muted">Python Flask</span>
+                        <span class="badge-viva border border-slate-200 text-muted">SpaCy NLP</span>
+                        <span class="badge-viva border border-slate-200 text-muted">Sentence Transformers</span>
+                        <span class="badge-viva border border-slate-200 text-muted">Paddle OCR</span>
+                        <span class="badge-viva border border-slate-200 text-muted">SQLite3</span>
+                        <span class="badge-viva border border-slate-200 text-muted">Scikit-Learn</span>
+                        <span class="badge-viva border border-slate-200 text-muted">inflect</span>
+                        <span class="badge-viva border border-slate-200 text-muted">rapidfuzz</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="p-4 rounded-4 bg-primary-light border border-primary-subtle h-100 d-flex align-items-center">
+                    <div>
+                        <h4 class="fw-bold text-primary mb-3">Data-Driven Decisions</h4>
+                        <p class="text-muted small mb-0">Chef AI analyzes your actual purchase history to suggest recipes that use what you already have, saving you time and money while reducing environmental impact through smarter consumption.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ls-wide {
+        letter-spacing: 2px;
+    }
+
+    .bg-primary-light {
+        background: var(--primary-light);
+    }
+
+    .border-slate-200 {
+        border-color: #e2e8f0 !important;
+    }
+</style>
+{% endblock %}

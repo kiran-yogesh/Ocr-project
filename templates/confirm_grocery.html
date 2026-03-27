@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm Acquisition | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-lg-8">
+        <div class="glass-card p-5 shadow-premium border-light">
+            <div class="text-center mb-5">
+                <div class="icon-circle mb-4 bg-primary-light text-primary">
+                    <i class="fas fa-shopping-basket fa-2x"></i>
+                </div>
+                <h1 class="fw-900 mb-2">Refine Acquisition Quantities</h1>
+                <p class="text-muted lead">Specify the quantities for the components you're adding to your registry.</p>
+            </div>
+
+            <form action="/grocery_list/finalize_bulk_add" method="POST">
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="text-muted small fw-800 text-uppercase">
+                            <tr>
+                                <th>Component Name</th>
+                                <th style="width: 250px;">Quantity/Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="fw-bold text-dark">
+                                    {{ item }}
+                                    <input type="hidden" name="items[]" value="{{ item }}">
+                                </td>
+                                <td>
+                                    <input type="text" name="quantities[]" class="form-control border-slate py-2" 
+                                           placeholder="e.g., 500g, 2 units" required>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-5 d-flex align-items-center justify-content-between">
+                    <a href="/grocery_list" class="btn btn-link text-muted fw-bold text-decoration-none">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn-primary-viva px-5 py-3 shadow-lg">
+                        Confirm Acquisition <i class="fas fa-check-circle ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .icon-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    .bg-primary-light { background: #eef2ff; }
+    .fw-900 { font-weight: 900; }
+    .border-slate { border-color: #e2e8f0 !important; }
+    .shadow-premium { box-shadow: 0 10px 40px rgba(0,0,0,0.06); }
+</style>
+{% endblock %}

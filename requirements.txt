@@ -1,0 +1,12 @@
+flask
+pandas
+numpy
+scikit-learn
+sentence-transformers
+rapidfuzz
+spacy
+inflect
+paddleocr
+opencv-python
+paddlepaddle
+anthropic

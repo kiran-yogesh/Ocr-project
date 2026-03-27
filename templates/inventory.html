@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-5">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h1 class="fw-900 mb-0">Kitchen Dashboard</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <form action="/inventory/clear" method="POST"
+                    onsubmit="return confirm('WARNING: This will permanently delete ALL items from your kitchen inventory. Proceed?')">
+                    <button type="submit" class="btn btn-outline-danger px-4 py-2 rounded-pill fw-bold shadow-sm">
+                        <i class="fas fa-dumpster-fire me-2"></i> Clear All Inventory
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="glass-card text-center h-100">
+            <h6 class="text-muted small fw-bold text-uppercase mb-2">Total Items</h6>
+            <h2 class="fw-800 mb-0">{{ summary.total }}</h2>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="glass-card text-center h-100" style="border-top: 4px solid #10b981;">
+            <h6 class="text-success small fw-bold text-uppercase mb-2">Fresh Assets</h6>
+            <h2 class="fw-800 mb-0 text-success">{{ summary.fresh }}</h2>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="glass-card text-center h-100" style="border-top: 4px solid #f59e0b;">
+            <h6 class="text-warning small fw-bold text-uppercase mb-2">Use Soon</h6>
+            <h2 class="fw-800 mb-0 text-warning">{{ summary.use_soon }}</h2>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="glass-card text-center h-100" style="border-top: 4px solid #ef4444;">
+            <h6 class="text-danger small fw-bold text-uppercase mb-2">Urgent Items</h6>
+            <h2 class="fw-800 mb-0 text-danger">{{ summary.urgent }}</h2>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="glass-card text-center h-100" style="border-top: 4px solid #1f2937;">
+            <h6 class="text-muted small fw-bold text-uppercase mb-2">Expired</h6>
+            <h2 class="fw-800 mb-0" style="color: #1f2937;">{{ summary.wasted }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <h4 class="fw-bold mb-0">Kitchen Stock Registry</h4>
+                <div class="search-box position-relative w-50">
+                    <i class="fas fa-search position-absolute text-dim" style="left: 15px; top: 12px;"></i>
+                    <input type="text" id="inventorySearch" class="form-control ps-5 py-2 rounded-pill border-slate"
+                        placeholder="Filter inventory...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-viva">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Expiry</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody">
+                        {% for item in items %}
+                        <tr class="inventory-row">
+                            <td class="fw-bold">{{ item.item }}</td>
+                            <td>
+                                <form action="/update_quantity/{{ item.id }}" method="POST"
+                                    class="d-flex align-items-center">
+                                    <input type="text" name="quantity" value="{{ item.quantity }}"
+                                        class="form-control form-control-sm border-slate me-2" style="width: 80px;">
+                                    <button type="submit" class="btn btn-sm text-dim hover-primary p-1">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="/update_expiry/{{ item.id }}" method="POST" class="d-flex align-items-center">
+                                    <input type="date" name="expiry_date" value="{{ item.expiry_date }}"
+                                        class="form-control form-control-sm border-slate me-2" style="width: 140px;">
+                                    <button type="submit" class="btn btn-sm text-dim hover-primary p-1">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-viva badge-{{ item.color }}">
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <form action="/mark_used/{{ item.id }}" method="POST">
+                                        <button class="btn btn-sm btn-icon-viva text-success">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    <form action="/mark_wasted/{{ item.id }}" method="POST">
+                                        <button class="btn btn-sm btn-icon-viva text-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="glass-card mb-4 border-primary">
+            <h5 class="fw-bold mb-4">Add Ingredient</h5>
+            <form action="/manual_add" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Item Name</label>
+                    <input type="text" name="item" class="form-control py-2" placeholder="e.g. Organic Milk" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-muted fw-bold">Quantity/Unit</label>
+                    <input type="text" name="qty" class="form-control py-2" placeholder="e.g. 500ml" required>
+                </div>
+                <button type="submit" class="btn-primary-viva w-100 py-3">Register Item</button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h5 class="fw-bold mb-4">Inventory Health</h5>
+            <div style="height: 250px;">
+                <canvas id="inventoryChart"
+                    data-fresh="{{ chart_data.Fresh }}"
+                    data-usesoon="{{ chart_data.UseSoon }}"
+                    data-urgent="{{ chart_data.Urgent }}"
+                    data-expired="{{ chart_data.Expired }}">
+                </canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var canvas       = document.getElementById('inventoryChart');
+    var freshCount   = parseInt(canvas.dataset.fresh,   10);
+    var useSoonCount = parseInt(canvas.dataset.usesoon, 10);
+    var urgentCount  = parseInt(canvas.dataset.urgent,  10);
+    var expiredCount = parseInt(canvas.dataset.expired, 10);
+
+    var ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Fresh', 'Use Soon', 'Urgent', 'Expired'],
+            datasets: [{
+                data: [freshCount, useSoonCount, urgentCount, expiredCount],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#1f2937'],
+                hoverOffset: 15,
+                borderRadius: 5,
+                borderWidth: 5,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: { weight: '600', family: 'Inter' }
+                    }
+                }
+            },
+            cutout: '75%',
+            maintainAspectRatio: false
+        }
+    });
+
+    document.getElementById('inventorySearch').addEventListener('input', function (e) {
+        var term = e.target.value.toLowerCase();
+        document.querySelectorAll('.inventory-row').forEach(function (row) {
+            var text = row.querySelector('td').textContent.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+</script>
+
+<style>
+    .btn-icon-viva {
+        background: transparent;
+        border: none;
+        font-size: 1.1rem;
+        transition: var(--transition);
+        padding: 0.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .btn-icon-viva:hover {
+        transform: scale(1.1);
+        background: rgba(0,0,0,0.05);
+    }
+
+    .badge-viva {
+        padding: 0.4rem 0.8rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        min-width: 90px;
+        text-align: center;
+    }
+
+    .badge-success { background: #10b981; color: white; }
+    .badge-warning { background: #f59e0b; color: white; }
+    .badge-danger  { background: #ef4444; color: white; }
+    .badge-dark    { background: #1f2937; color: white; }
+
+    .border-slate {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+    }
+
+    .table-viva td {
+        vertical-align: middle;
+        padding: 1rem 0.75rem;
+    }
+
+    .form-control-sm {
+        height: 34px !important;
+    }
+</style>
+{% endblock %}

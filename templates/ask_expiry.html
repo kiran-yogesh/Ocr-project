@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-5" style="max-width: 560px;">
+
+  <!-- Card acting as the "popup" -->
+  <div class="card shadow-lg border-0 rounded-4">
+
+    <div class="card-header bg-warning text-dark rounded-top-4 py-3 px-4 d-flex align-items-center gap-2">
+      <i class="bi bi-calendar-x fs-5"></i>
+      <span class="fw-semibold fs-5">Shelf Life Unknown</span>
+      {% if remaining and remaining > 1 %}
+        <span class="ms-auto badge bg-dark">{{ remaining }} item(s) left</span>
+      {% endif %}
+    </div>
+
+    <div class="card-body px-4 py-4">
+
+      <p class="text-muted mb-1">Item not found in our shelf-life database:</p>
+      <h5 class="fw-bold text-dark mb-4 d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-box-seam me-2 text-warning"></i>{{ item }}</span>
+        <button type="button" id="api-predict-btn" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm border-2">
+          <i class="bi bi-magic me-1"></i> AI Predict
+        </button>
+      </h5>
+
+      <!-- TAB SWITCHER: shelf-life days  vs  direct expiry date -->
+      <ul class="nav nav-pills nav-fill mb-4" id="expiryTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="days-tab" data-bs-toggle="pill"
+                  data-bs-target="#days-pane" type="button" role="tab">
+            <i class="bi bi-clock me-1"></i> Shelf Life (Days)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="date-tab" data-bs-toggle="pill"
+                  data-bs-target="#date-pane" type="button" role="tab">
+            <i class="bi bi-calendar2-check me-1"></i> Exact Expiry Date
+          </button>
+        </li>
+      </ul>
+
+      <!-- FORM — single form that submits to the right action -->
+      <form method="POST"
+            action="{{ '/save_expiry_batch' if source == 'batch' else '/save_expiry' }}">
+
+        <input type="hidden" name="item"   value="{{ item }}">
+        <input type="hidden" name="qty"    value="{{ qty }}">
+        <input type="hidden" name="source" value="{{ source }}">
+
+        <div class="tab-content" id="expiryTabContent">
+
+          <!-- TAB 1 — shelf-life days (saved to CSV for future) -->
+          <div class="tab-pane fade show active" id="days-pane" role="tabpanel">
+            <div class="alert alert-info py-2 px-3 small mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Enter how long <strong>{{ item }}</strong> typically lasts.
+              We'll save this so you're never asked again.
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">
+                  <i class="bi bi-thermometer-half me-1 text-primary"></i>
+                  Fridge (days)
+                </label>
+                <input type="number" name="fridge_days" class="form-control"
+                       placeholder="e.g. 14" min="0" max="3650">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">
+                  <i class="bi bi-archive me-1 text-secondary"></i>
+                  Pantry (days)
+                </label>
+                <input type="number" name="pantry_days" class="form-control"
+                       placeholder="e.g. 30" min="0" max="3650">
+              </div>
+            </div>
+            <p class="text-muted small">
+              Leave one blank if the item is only stored one way.
+              We use a weighted average (70% fridge + 30% pantry).
+            </p>
+          </div>
+
+          <!-- TAB 2 — direct expiry date (one-off, not saved to CSV) -->
+          <div class="tab-pane fade" id="date-pane" role="tabpanel">
+            <div class="alert alert-secondary py-2 px-3 small mb-3">
+              <i class="bi bi-exclamation-circle me-1"></i>
+              This expiry date is for <strong>this item only</strong> and won't
+              be saved for future lookups.  Use Tab 1 to save shelf-life permanently.
+            </div>
+
+            <label class="form-label small fw-semibold">Expiry Date</label>
+            <input type="date" name="expiry_date" class="form-control mb-3"
+                   value="{{ expiry_date }}"
+                   min="{{ today }}">
+          </div>
+
+        </div>
+
+        <!-- Submit / Skip -->
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-warning fw-semibold flex-grow-1">
+            <i class="bi bi-save me-1"></i> Save &amp; Continue
+          </button>
+          {% if source == 'batch' %}
+          <!-- Skip this item (submit with blank fields → default 10-day fallback) -->
+          <button type="submit" name="fridge_days" value=""
+                  class="btn btn-outline-secondary px-3"
+                  title="Skip this item (uses 10-day default)">
+            Skip
+          </button>
+          {% else %}
+          <a href="/inventory" class="btn btn-outline-secondary px-3">Cancel</a>
+          {% endif %}
+        </div>
+
+      </form>
+    </div><!-- /card-body -->
+
+    <div class="card-footer text-muted small rounded-bottom-4 px-4 py-2">
+      <i class="bi bi-lightbulb me-1"></i>
+      Tip: Check the package label or a food-safety guide for shelf-life figures.
+    </div>
+
+  </div><!-- /card -->
+</div>
+
+<script>
+  // Keep the correct hidden expiry_date field blank when using the days tab
+  // and vice versa, so the server knows which tab was active.
+  const daysTab = document.getElementById('days-tab');
+  const dateTab = document.getElementById('date-tab');
+  const expiryInput = document.querySelector('input[name="expiry_date"]');
+  const fridgeInput = document.querySelector('input[name="fridge_days"]');
+  const pantryInput = document.querySelector('input[name="pantry_days"]');
+
+  daysTab.addEventListener('shown.bs.tab', () => {
+    if (expiryInput) expiryInput.value = '';
+  });
+  dateTab.addEventListener('shown.bs.tab', () => {
+    if (fridgeInput) fridgeInput.value = '';
+    if (pantryInput) pantryInput.value = '';
+  });
+
+  // AI Prediction logic
+  const predictBtn = document.getElementById('api-predict-btn');
+  predictBtn.addEventListener('click', async () => {
+    const itemName = "{{ item }}";
+    predictBtn.disabled = true;
+    predictBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Predicting...';
+    
+    try {
+      const resp = await fetch(`/api/predict_shelf_life?item=${encodeURIComponent(itemName)}`);
+      const data = await resp.json();
+      
+      if (data.error) {
+        alert("Prediction failed: " + data.error);
+      } else {
+        // Switch to days tab if not already there
+        const trigger = new bootstrap.Tab(daysTab);
+        trigger.show();
+
+        // Populate fields
+        if (data.fridge !== null) fridgeInput.value = data.fridge;
+        if (data.pantry !== null) pantryInput.value = data.pantry;
+        
+        // Visual feedback
+        predictBtn.classList.remove('btn-outline-warning');
+        predictBtn.classList.add('btn-success');
+        predictBtn.innerHTML = `<i class="bi bi-check-circle me-1"></i> Matched ${data.match}`;
+        
+        setTimeout(() => {
+          predictBtn.classList.remove('btn-success');
+          predictBtn.classList.add('btn-outline-warning');
+          predictBtn.innerHTML = '<i class="bi bi-magic me-1"></i> AI Predict';
+          predictBtn.disabled = false;
+        }, 3000);
+      }
+    } catch (e) {
+      alert("Error fetching prediction.");
+      console.error(e);
+    } finally {
+      if (!predictBtn.innerHTML.includes('Matched')) {
+        predictBtn.disabled = false;
+        predictBtn.innerHTML = '<i class="bi bi-magic me-1"></i> AI Predict';
+      }
+    }
+  });
+</script>
+
+{% endblock %}

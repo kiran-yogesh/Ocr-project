@@ -1,0 +1,76 @@
+{
+    "baseline": {
+        "ndcg_8": 1.0,
+        "f1_overall": 0.952,
+        "precision_k": 0.999,
+        "recall_k": 0.016,
+        "hit_rate_k": 1.0,
+        "f1_k": 0.032,
+        "mrr": 1.0,
+        "ndcg_k": 1.0,
+        "accuracy": 0.91,
+        "precision": 0.999,
+        "recall": 0.909,
+        "f1": 0.952,
+        "tn": 78,
+        "fp": 4,
+        "fn": 277,
+        "tp": 2777,
+        "confusion_matrix": [
+            [
+                78,
+                4
+            ],
+            [
+                277,
+                2777
+            ]
+        ],
+        "catalog_coverage": 0.713,
+        "fwri": 0.671,
+        "ocr": {
+            "cer": 0.018,
+            "wer": 0.042,
+            "kie_f1": 0.96,
+            "match_rate": 0.98
+        },
+        "k": 50
+    },
+    "proposed": {
+        "ndcg_8": 1.0,
+        "f1_overall": 0.992,
+        "precision_k": 0.997,
+        "recall_k": 0.017,
+        "hit_rate_k": 1.0,
+        "f1_k": 0.033,
+        "mrr": 1.0,
+        "ndcg_k": 1.0,
+        "accuracy": 0.984,
+        "precision": 0.997,
+        "recall": 0.986,
+        "f1": 0.992,
+        "tn": 123,
+        "fp": 8,
+        "fn": 42,
+        "tp": 2963,
+        "confusion_matrix": [
+            [
+                123,
+                8
+            ],
+            [
+                42,
+                2963
+            ]
+        ],
+        "catalog_coverage": 0.874,
+        "fwri": 0.371,
+        "ocr": {
+            "cer": 0.018,
+            "wer": 0.042,
+            "kie_f1": 0.96,
+            "match_rate": 0.98
+        },
+        "k": 50
+    }
+}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Grocery List | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-card pb-1">
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-800 mb-0">Acquisition Registry</h5>
+                        <form action="/grocery_list/clear" method="POST" onsubmit="return confirm('Clear all items from your registry?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger px-3 rounded-pill fw-bold">
+                                <i class="fas fa-trash-alt me-1"></i> Clear All
+                            </button>
+                        </form>
+                    </div>
+                    <p class="small text-muted mb-0">Required components for upcoming recipe cycles.</p>
+                </div>
+                <a href="/grocery_list/export_pdf" class="btn btn-sm btn-secondary-viva py-2 px-3 shadow-sm text-decoration-none">
+                    <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                </a>
+            </div>
+
+            <div class="list-group list-group-flush mb-4">
+                {% for item in items %}
+                <div
+                    class="list-group-item bg-transparent border-0 d-flex justify-content-between align-items-center py-3 mb-2 rounded-3 hover-viva border border-slate-light">
+                    <div class="d-flex align-items-center">
+                        <div class="form-check custom-check me-3">
+                            <input class="form-check-input" type="checkbox" id="item-{{ loop.index }}">
+                        </div>
+                        <label class="fw-600 mb-0" for="item-{{ loop.index }}">{{ item.item }} <span
+                                class="text-dim x-small ms-2">({{ item.quantity }})</span></label>
+                    </div>
+                    <form action="/grocery_list/delete/{{ item.id }}" method="POST">
+                        <button type="submit" class="btn btn-sm text-dim hover-danger p-2"><i
+                                class="fas fa-times"></i></button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not items %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-dim opacity-25 mb-3"></i>
+                <p class="text-muted">Registry is currently empty. Add items from recommendations or manually.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="glass-card border-primary">
+            <h5 class="fw-bold mb-4">Manual Entry</h5>
+            <form action="/grocery_list/add" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Component Name</label>
+                    <input type="text" name="item" class="form-control py-2 border-slate" placeholder="e.g. Fresh Basil"
+                        required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-muted fw-bold">Quantity</label>
+                    <input type="text" name="qty" class="form-control py-2 border-slate"
+                        placeholder="e.g. 500g or 1 unit" required>
+                </div>
+                <button type="submit" class="btn-primary-viva w-100 py-3">Add to Acquisition</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-viva {
+        transition: var(--transition);
+        border: 1px solid transparent !important;
+    }
+
+    .hover-viva:hover {
+        background: #f8fafc !important;
+        border-color: var(--border) !important;
+        padding-left: 1rem !important;
+    }
+
+    .hover-danger:hover {
+        color: #ef4444 !important;
+    }
+
+    .custom-check .form-check-input:checked {
+        background-color: var(--secondary);
+        border-color: var(--secondary);
+    }
+
+    .border-slate-light {
+        border-color: #f1f5f9 !important;
+    }
+
+    .border-slate {
+        border-color: #e2e8f0 !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Research Diagnostics | Chef AI{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-5">
+    <div class="col-lg-6">
+        <h1 class="fw-800 mb-2">Personal Research Dashboard</h1>
+        <p class="text-muted">High-fidelity diagnostics scoped to your current kitchen stock.</p>
+    </div>
+    <div class="col-lg-6 text-lg-end">
+        {% if metrics %}
+        <div class="badge-viva bg-primary-light text-primary border border-primary border-opacity-10 p-3">
+            <i class="fas fa-microscope me-2"></i> Neural Evaluation K = {{ metrics.k }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not metrics %}
+<div class="glass-card text-center py-5 border-slate">
+    <i class="fas fa-database fa-3x text-dim opacity-25 mb-3"></i>
+    <h4 class="fw-bold">Null Vector Detected</h4>
+    <p class="text-muted">Populate asset registry to generate diagnostic telemetry.</p>
+</div>
+{% else %}
+<div class="row g-4 mb-5">
+    <!-- CLASSIFICATION -->
+    <div class="col-lg-7">
+        <div class="glass-card border-slate p-4 h-100">
+            <h5 class="fw-800 mb-4"><i class="fas fa-tags me-2 text-secondary"></i>CLASSIFICATION</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-3">
+                    <div class="p-3 bg-light rounded-4 border text-center">
+                        <h4 class="fw-800 mb-0 text-secondary">{{ metrics.accuracy }}</h4>
+                        <small class="text-dim fw-bold x-small">Accuracy</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-light rounded-4 border text-center">
+                        <h4 class="fw-800 mb-0 text-secondary">{{ metrics.precision }}</h4>
+                        <small class="text-dim fw-bold x-small">Precision</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-light rounded-4 border text-center">
+                        <h4 class="fw-800 mb-0 text-secondary">{{ metrics.recall }}</h4>
+                        <small class="text-dim fw-bold x-small">Recall</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-3 bg-light rounded-4 border text-center">
+                        <h4 class="fw-800 mb-0 text-secondary">{{ metrics.f1 }}</h4>
+                        <small class="text-dim fw-bold x-small">F1 Score</small>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="x-small fw-800 text-dim text-uppercase mb-3">Confusion Matrix</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="x-small text-dim">Actual \ Pred</th>
+                            <th class="x-small text-dim">Negative (-)</th>
+                            <th class="x-small text-dim">Positive (+)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bg-light x-small fw-800">Negative (-)</td>
+                            <td class="p-3">
+                                <div class="fw-800">{{ metrics.tn }}</div>
+                                <div class="x-small text-muted">TN</div>
+                            </td>
+                            <td class="p-3 text-danger bg-danger bg-opacity-10">
+                                <div class="fw-800">{{ metrics.fp }}</div>
+                                <div class="x-small text-danger">FP</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light x-small fw-800">Positive (+)</td>
+                            <td class="p-3 text-warning bg-warning bg-opacity-10">
+                                <div class="fw-800">{{ metrics.fn }}</div>
+                                <div class="x-small text-warning">FN</div>
+                            </td>
+                            <td class="p-3 text-success bg-success bg-opacity-10">
+                                <div class="fw-800">{{ metrics.tp }}</div>
+                                <div class="x-small text-success">TP</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUSTAINABILITY -->
+    <div class="col-lg-5">
+        <div class="glass-card border-slate p-4 h-100">
+            <h5 class="fw-800 mb-4"><i class="fas fa-leaf me-2 text-success"></i>SUSTAINABILITY</h5>
+            <div class="space-y-4">
+                <div class="p-3 bg-light rounded-4 border mb-4">
+                    <h6 class="fw-bold text-success mb-1">Catalog Coverage</h6>
+                    <h2 class="fw-800 mb-2">{{ metrics.catalog_coverage }}</h2>
+                    <p class="x-small text-muted mb-0">Percentage of recipes matchable with current inventory assets.
+                    </p>
+                </div>
+                <div class="p-3 bg-light rounded-4 border">
+                    <h6 class="fw-bold text-success mb-1">Food Waste Reduction Index</h6>
+                    <h2 class="fw-800 mb-2">{{ metrics.fwri }}</h2>
+                    <p class="x-small text-muted mb-0">Model efficiency in prioritizing items nearing expiration.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 📸 OCR PERFORMANCE METRICS -->
+<div class="row g-4 mb-5">
+    <div class="col-12">
+        <div class="glass-card border-slate p-4">
+            <h5 class="fw-800 mb-4"><i class="fas fa-camera-retro me-2 text-dark"></i>OCR PERFORMANCE METRICS</h5>
+            <div class="row g-3 text-center">
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-4 border">
+                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.cer * 100) | round(1) }}%</h4>
+                        <small class="text-dim fw-bold x-small">CER</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-4 border">
+                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.wer * 100) | round(1) }}%</h4>
+                        <small class="text-dim fw-bold x-small">WER</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-4 border text-primary">
+                        <h4 class="fw-800 mb-0">{{ metrics.ocr.kie_f1 }}</h4>
+                        <small class="text-dim fw-bold x-small">KIE F1-Score</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-4 border text-success">
+                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.match_rate * 100) | round(0) }}%</h4>
+                        <small class="text-dim fw-bold x-small">Match Rate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metric Dictionary Section -->
+<div class="mt-5 pt-5 border-top border-slate">
+    <h3 class="fw-800 mb-4 text-center"><i class="fas fa-book-open me-2 text-primary"></i>Metric Dictionary</h3>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">F1 Overall</h6>
+                <p class="x-small text-muted mb-0">The harmonic mean of precision and recall. It represents the overall classification accuracy of the model.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">Catalog Coverage</h6>
+                <p class="x-small text-muted mb-0">Measures the percentage of the total recipe database that the model is capable of recommending.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">FWRI</h6>
+                <p class="x-small text-muted mb-0">Food Waste Reduction Index. A custom metric measuring efficiency in prioritizing ingredients nearing expiry.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">CER</h6>
+                <p class="x-small text-muted mb-0">Character Error Rate. Measures individual character flips (e.g., 'S' vs '5') in OCR processing.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">WER</h6>
+                <p class="x-small text-muted mb-0">Word Error Rate. Measures if whole words (like "Milk" or "Butter") are read correctly on bills.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">KIE</h6>
+                <p class="x-small text-muted mb-0">Key Information Extraction. Evaluates if the AI correctly identified "Items", "Prices", or "Quantities".</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">Match Rate</h6>
+                <p class="x-small text-muted mb-0">The percentage of extracted text successfully mapped to valid database ingredients via fuzzy matching logic.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .x-small {
+        font-size: 0.7rem;
+    }
+
+    .bg-primary-light {
+        background: #eef2ff;
+    }
+
+    .cm-cell {
+        padding: 1.25rem;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .bg-light {
+        background: #f8fafc !important;
+    }
+
+    .border-slate {
+        border-color: #e2e8f0 !important;
+    }
+</style>
+{% endblock %}
