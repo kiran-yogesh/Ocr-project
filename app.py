@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import itertools
@@ -28,6 +26,9 @@ from ocr_utils import (
     normalize_quantity,
     is_qty as is_quantity,
     preprocess_image,
+    classify_image_for_grocery,
+    detect_image_type,
+    extract_product_name_from_image,
 )
 
 # Backward-compatible alias
@@ -498,191 +499,6 @@ def api_predict_shelf_life():
     return prediction
 
 
-# ---------------------------
-# PACKET OCR HELPER
-# Extracts product name, quantity, and expiry date from
-# raw OCR text scraped off a grocery packet label.
-# ---------------------------
-
-_MONTH_MAP = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
-}
-
-# Expiry-date trigger keywords seen on packet labels
-_EXPIRY_TRIGGERS = re.compile(
-    r"(?:best\s*before|expiry|exp(?:iry)?\.?|exp(?:iration)?\.?|"
-    r"use\s*by|bb|mfg\.?\s*date|manufactured|best\s*by|use\s*before)"
-    r"\s*:?\s*",
-    re.IGNORECASE,
-)
-
-# Patterns for various date formats that appear near trigger keywords
-_DATE_PATTERNS = [
-    # Nov 2023 / November 2023
-    re.compile(r"([A-Za-z]{3,9})\s+(\d{4})", re.IGNORECASE),
-    # 2023-11 / 2023/11
-    re.compile(r"(\d{4})[-/](\d{1,2})"),
-    # 11/2023 / 11-2023
-    re.compile(r"(\d{1,2})[-/](\d{4})"),
-    # 12 Dec 2023 / 12-Dec-2023
-    re.compile(r"(\d{1,2})[-\s]([A-Za-z]{3,9})[-\s](\d{4})", re.IGNORECASE),
-    # 12/11/2023 or 12-11-2023 (DD/MM/YYYY)
-    re.compile(r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})"),
-    # 12/11/23 (DD/MM/YY)
-    re.compile(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2})\b"),
-]
-
-_QTY_PATTERN = re.compile(
-    r"(\d+\.?\d*)\s*(kg|g|gm|gms|gram|grams|lbs?|lb|ltr|l|litre|liter|ml|oz|pcs|pack|packet)\b",
-    re.IGNORECASE,
-)
-
-# Words to skip when extracting product name from label lines
-_LABEL_SKIP_WORDS = {
-    "nutritional", "information", "ingredients", "serving", "size", "calories",
-    "total", "fat", "sodium", "carbohydrate", "protein", "daily", "value",
-    "batch", "no", "packed", "on", "best", "before", "mfg", "manufacture",
-    "clean", "green", "store", "cool", "dry", "place", "barcode", "ean",
-    "fssai", "lic", "spices", "spice", "foods", "distribution", "inc",
-    "making", "life", "flavourful", "flavorful", "imported", "country",
-    "tel", "fax", "info", "www", "sales", "head", "office",
-}
-
-
-def _parse_date_from_text(text: str):
-    """Try to parse a date from a short text snippet. Returns a date string or None."""
-    from datetime import date as _date
-    today = datetime.now().date()
-
-    for pat in _DATE_PATTERNS:
-        m = pat.search(text)
-        if not m:
-            continue
-        groups = m.groups()
-        try:
-            if len(groups) == 2:
-                a, b = groups
-                if a.isdigit() and b.isdigit():
-                    if len(str(b)) == 4:  # MM/YYYY or YYYY/MM
-                        year, month = (int(b), int(a)) if len(str(a)) <= 2 else (int(a), int(b))
-                    else:
-                        continue
-                elif a.isdigit():
-                    month = _MONTH_MAP.get(b.lower()[:3])
-                    year = int(a)
-                    if month is None:
-                        continue
-                else:
-                    month = _MONTH_MAP.get(a.lower()[:3])
-                    year = int(b)
-                    if month is None:
-                        continue
-                return _date(year, month, 1).strftime("%Y-%m-%d")
-            elif len(groups) == 3:
-                d, mon, yr = groups
-                if mon.isdigit():
-                    day, month, year = int(d), int(mon), int(yr)
-                    year = year + 2000 if year < 100 else year
-                else:
-                    day, month, year = int(d), _MONTH_MAP.get(str(mon).lower()[:3], 0), int(yr)
-                    if month == 0:
-                        continue
-                return _date(year, month, day).strftime("%Y-%m-%d")
-        except (ValueError, TypeError):
-            continue
-    return None
-
-
-def extract_packet_info(ocr_result) -> dict:
-    """
-    Parse raw PaddleOCR result from a grocery packet image.
-    Returns dict with keys: item (str), quantity (str), expiry_date (str).
-    All values may be empty strings if not detected.
-    """
-    # Flatten all OCR lines into a list of (text, confidence, y_center) tuples
-    lines = []
-    if ocr_result is None:
-        return {"item": "", "quantity": "", "expiry_date": ""}
-
-    for page in ocr_result:
-        if not page:
-            continue
-        for word_info in page:
-            try:
-                box, (text, conf) = word_info
-                # y_center = average of top-left and bottom-left y
-                y_center = (box[0][1] + box[3][1]) / 2
-                lines.append((text.strip(), float(conf), y_center))
-            except (TypeError, ValueError, IndexError):
-                continue
-
-    if not lines:
-        return {"item": "", "quantity": "", "expiry_date": ""}
-
-    # Sort by vertical position top-to-bottom
-    lines.sort(key=lambda x: x[2])
-    all_text = [t for t, _c, _y in lines]
-    full_text = " ".join(all_text)
-
-    # ── 1. Detect expiry date ──────────────────────────────────────────────
-    expiry_date = ""
-    for i, (text, _c, _y) in enumerate(lines):
-        if _EXPIRY_TRIGGERS.search(text):
-            # Check this line and the next 2 (date may be on the next line)
-            snippet = " ".join(all_text[i:i + 3])
-            expiry_date = _parse_date_from_text(snippet) or ""
-            if expiry_date:
-                break
-
-    # Fallback: scan all lines for any date pattern
-    if not expiry_date:
-        expiry_date = _parse_date_from_text(full_text) or ""
-
-    # ── 2. Detect quantity ────────────────────────────────────────────────
-    quantity = ""
-    qty_m = _QTY_PATTERN.search(full_text)
-    if qty_m:
-        quantity = qty_m.group(0).strip()
-
-    # ── 3. Detect product name ────────────────────────────────────────────
-    # Heuristic: the product name is usually in the first few high-confidence
-    # lines, all-caps or title-case, and doesn't contain nutritional keywords.
-    item = ""
-    name_candidates = []
-    for text, conf, _y in lines[:20]:  # inspect top 20 lines
-        words = text.strip().split()
-        word_count = len(words)
-        if word_count == 0 or word_count > 8:
-            continue
-        lower_words = {w.lower() for w in words}
-        if lower_words & _LABEL_SKIP_WORDS:
-            continue
-        # Reject lines that are purely numeric or very short
-        if re.fullmatch(r"[\d\s\.\-\/\:]+", text):
-            continue
-        if len(text.strip()) < 4:
-            continue
-        name_candidates.append((text.strip(), conf, word_count))
-
-    if name_candidates:
-        # Prefer longer, higher-confidence lines
-        name_candidates.sort(key=lambda x: (x[2], x[1]), reverse=True)
-        item = name_candidates[0][0].title()
-
-    # Final cleanup using ocr_utils
-    try:
-        cleaned = clean_item_name(item)
-        if cleaned:
-            item = cleaned.title()
-    except Exception:
-        pass
-
-    return {
-        "item": item,
-        "quantity": quantity,
-        "expiry_date": expiry_date,
-    }
 
 
 # ---------------------------
@@ -1088,7 +904,92 @@ def upload():
             )
         path = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(path)
+
+        # ── STEP 1: Detect image type (bill / product / other) ──────────────
+        image_type = detect_image_type(path)
+
+        if image_type == "other":
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            return render_template(
+                "upload.html",
+                error=(
+                    "The uploaded image does not appear to be a grocery bill or "
+                    "grocery product photo. Please upload a grocery receipt or a "
+                    "food/grocery product image."
+                ),
+            )
+
+        username = session.get("user", "default")
+        conn = sqlite3.connect("grocery_ocr.db")
+        cur = conn.cursor()
+        cur.execute("SELECT MAX(serial_no) FROM grocery_items WHERE user_id = ?", (username,))
+        res = cur.fetchone()[0]
+        sno = (res if res else 0) + 1
+        unknown_items = []
+
+        # ── STEP 2a: PRODUCT IMAGE PATH ─────────────────────────────────────
+        if image_type == "product":
+            product_name = extract_product_name_from_image(path)
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+            if not product_name:
+                conn.close()
+                return render_template(
+                    "upload.html",
+                    error=(
+                        "Could not identify the grocery product in the image. "
+                        "Please make sure the product label is clearly visible, "
+                        "or add the item manually."
+                    ),
+                )
+
+            expiry_result = calculate_expiry(product_name)
+            if expiry_result is None:
+                # Not in shelf life DB — ask user for expiry date
+                unknown_items.append({"item": product_name, "qty": "1 pc"})
+            else:
+                purchase, expiry, days_left = expiry_result
+                cur.execute(
+                    """
+                    INSERT INTO grocery_items
+                        (serial_no, item, quantity, purchase_date, expiry_date, days_left, user_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (sno, product_name, "1 pc", purchase, expiry, days_left, username),
+                )
+                sno += 1
+
+            conn.commit()
+            conn.close()
+
+            if unknown_items:
+                session["pending_items"] = unknown_items
+                session.modified = True
+                return redirect("/ask_expiry_batch")
+
+            return redirect("/inventory")
+
+        # ── STEP 2b: GROCERY BILL PATH ──────────────────────────────────────
+        # Run a quick OCR pass first so the fallback classifier can also use
+        # the raw text if needed.
         raw_result = ocr.ocr(path)
+
+        # Secondary gate: verify OCR text has grocery signals (fallback safety net)
+        ok, reason = classify_image_for_grocery(path, raw_ocr_result=raw_result)
+        if not ok:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            conn.close()
+            return render_template("upload.html", error=reason)
+
         grocery_items: list = []
         if raw_result is not None:
             grocery_items = extract_grocery_items(raw_result)
@@ -1103,41 +1004,35 @@ def upload():
                 except OSError:
                     pass
         if not grocery_items:
+            conn.close()
             return render_template(
                 "upload.html",
                 error=(
                     "Could not detect any grocery items. "
                     "Make sure the bill is clear and well-lit, or add items manually."
-                )
+                ),
             )
-
-        username = session.get("user", "default")
-        conn = sqlite3.connect("grocery_ocr.db")
-        cur = conn.cursor()
-        cur.execute("SELECT MAX(serial_no) FROM grocery_items WHERE user_id = ?", (username,))
-        res = cur.fetchone()[0]
-        sno = (res if res else 0) + 1
-
-        unknown_items = []   # items not in CSV — collect for batch ask
 
         for item, qty in grocery_items:
             result = calculate_expiry(item)
             if result is None:
-                # Item unknown — queue for user input
                 unknown_items.append({"item": item, "qty": qty})
             else:
                 purchase, expiry, days_left = result
-                cur.execute("""
-                    INSERT INTO grocery_items(serial_no, item, quantity, purchase_date, expiry_date, days_left, user_id)
+                cur.execute(
+                    """
+                    INSERT INTO grocery_items
+                        (serial_no, item, quantity, purchase_date, expiry_date, days_left, user_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (sno, item, qty, purchase, expiry, days_left, username))
+                    """,
+                    (sno, item, qty, purchase, expiry, days_left, username),
+                )
                 sno += 1
 
         conn.commit()
         conn.close()
 
         if unknown_items:
-            # Store in session so ask_expiry_batch can iterate through them
             session["pending_items"] = unknown_items
             session.modified = True
             return redirect("/ask_expiry_batch")
@@ -1146,124 +1041,6 @@ def upload():
     return render_template("upload.html")
 
 
-# ---------------------------
-# UPLOAD PACKET LABEL
-# Scan a grocery packet for name / qty / expiry date.
-# ---------------------------
-@app.route("/upload_packet", methods=["GET", "POST"])
-def upload_packet():
-    if request.method == "GET":
-        return redirect("/upload")
-    if "user" not in session:
-        return redirect("/")
-    if "packet" not in request.files:
-        return render_template("upload.html", error="No file part", active_tab="packet")
-    file = request.files["packet"]
-    if file.filename == "":
-        return render_template("upload.html", error="No file selected", active_tab="packet")
-    if not (file and allowed_file(file.filename)):
-        return render_template(
-            "upload.html",
-            error="Invalid file type. Please upload PNG, JPG, or JPEG.",
-            active_tab="packet",
-        )
-    path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(path)
-
-    # Run OCR
-    raw_result = ocr.ocr(path)
-    info = extract_packet_info(raw_result)
-
-    # If nothing extracted, try a preprocessed version
-    if not info["item"] and not info["expiry_date"]:
-        proc_path = preprocess_image(path)
-        if proc_path != path:
-            raw_result2 = ocr.ocr(proc_path)
-            info2 = extract_packet_info(raw_result2)
-            try:
-                os.remove(proc_path)
-            except OSError:
-                pass
-            if info2["item"] or info2["expiry_date"]:
-                info = info2
-
-    return render_template(
-        "upload_packet_confirm.html",
-        item=info.get("item", ""),
-        quantity=info.get("quantity", ""),
-        expiry_date=info.get("expiry_date", ""),
-    )
-
-
-@app.route("/confirm_packet_add", methods=["POST"])
-def confirm_packet_add():
-    if "user" not in session:
-        return redirect("/")
-
-    raw_item    = request.form.get("item", "").strip()
-    quantity    = request.form.get("quantity", "").strip()
-    expiry_date = request.form.get("expiry_date", "").strip()
-
-    if not raw_item:
-        return render_template(
-            "upload_packet_confirm.html",
-            item=raw_item,
-            quantity=quantity,
-            expiry_date=expiry_date,
-            error="Item name is required.",
-        )
-
-    cleaned = clean_item_name(raw_item)
-    item    = cleaned.title() if cleaned else raw_item.title()
-
-    today_str = str(datetime.now().date())
-
-    if expiry_date:
-        # Expiry date already known from the packet label — use it directly
-        try:
-            expiry_dt = datetime.strptime(expiry_date, "%Y-%m-%d").date()
-            days_left = (expiry_dt - datetime.now().date()).days
-        except ValueError:
-            expiry_date = str(datetime.now().date() + timedelta(days=10))
-            days_left   = 10
-        purchase_str = today_str
-
-        username = session["user"]
-        conn = sqlite3.connect("grocery_ocr.db")
-        cur  = conn.cursor()
-        cur.execute("SELECT MAX(serial_no) FROM grocery_items WHERE user_id = ?", (username,))
-        res = cur.fetchone()[0]
-        sno = (res if res else 0) + 1
-        cur.execute("""
-            INSERT INTO grocery_items(serial_no, item, quantity, purchase_date, expiry_date, days_left, user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (sno, item, quantity or "1 unit", today_str, expiry_date, days_left, username))
-        conn.commit()
-        conn.close()
-        return redirect("/inventory")
-
-    else:
-        # No expiry from packet — try CSV, then ask user if not found
-        result = calculate_expiry(item)
-        if result is None:
-            from urllib.parse import urlencode
-            params = urlencode({"item": item, "qty": quantity or "1 unit", "source": "packet"})
-            return redirect(f"/ask_expiry?{params}")
-
-        purchase_str, expiry_date, days_left = result
-        username = session["user"]
-        conn = sqlite3.connect("grocery_ocr.db")
-        cur  = conn.cursor()
-        cur.execute("SELECT MAX(serial_no) FROM grocery_items WHERE user_id = ?", (username,))
-        res = cur.fetchone()[0]
-        sno = (res if res else 0) + 1
-        cur.execute("""
-            INSERT INTO grocery_items(serial_no, item, quantity, purchase_date, expiry_date, days_left, user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (sno, item, quantity or "1 unit", today_str, expiry_date, days_left, username))
-        conn.commit()
-        conn.close()
-        return redirect("/inventory")
 
 
 # ---------------------------------------------------------------------------

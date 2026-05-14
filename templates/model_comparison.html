@@ -403,6 +403,84 @@
         </div>
     </div>
 
+    <!-- ── INDIVIDUAL MODEL BREAKDOWNS ────────────────────────────── -->
+    <h4 class="section-heading"><i class="fas fa-search-plus section-icon"></i>Individual Model Breakdowns</h4>
+    
+    <!-- 1. Exact Match -->
+    <h5 class="fw-bold mb-3 text-secondary mt-4"><i class="fas fa-tag me-2"></i>Baseline 1: Exact Match</h5>
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h6 class="fw-bold mb-4 text-center">Baseline Balance (Radar)</h6>
+                <div style="height:320px;">
+                    <canvas id="radarExact"
+                        data-p="{{ exact.precision }}" data-r="{{ exact.recall }}" data-f="{{ exact.f1_overall }}" data-a="{{ exact.accuracy }}" data-c="{{ exact.catalog_coverage }}" data-w="{{ exact.fwri }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h6 class="fw-bold mb-4 text-center">Baseline Performance (Bar)</h6>
+                <div style="height:320px;">
+                    <canvas id="barExact"
+                        data-ndcg="{{ exact.ndcg_k }}" data-hr="{{ exact.hit_rate_k }}" data-mrr="{{ exact.mrr }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. TF-IDF -->
+    <h5 class="fw-bold mb-3 mt-4" style="color: #ea580c;"><i class="fas fa-tags me-2"></i>Baseline 2: TF-IDF</h5>
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h6 class="fw-bold mb-4 text-center">TF-IDF Balance (Radar)</h6>
+                <div style="height:320px;">
+                    <canvas id="radarTfidf"
+                        data-p="{{ tfidf.precision }}" data-r="{{ tfidf.recall }}" data-f="{{ tfidf.f1_overall }}" data-a="{{ tfidf.accuracy }}" data-c="{{ tfidf.catalog_coverage }}" data-w="{{ tfidf.fwri }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm">
+                <h6 class="fw-bold mb-4 text-center">TF-IDF Performance (Bar)</h6>
+                <div style="height:320px;">
+                    <canvas id="barTfidf"
+                       data-ndcg="{{ tfidf.ndcg_k }}" data-hr="{{ tfidf.hit_rate_k }}" data-mrr="{{ tfidf.mrr }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Proposed (BERT) -->
+    <h5 class="fw-bold mb-3 text-primary mt-4"><i class="fas fa-brain me-2"></i>Proposed: BERT</h5>
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm border-primary">
+                <h6 class="fw-bold mb-4 text-center">BERT Balance (Radar)</h6>
+                <div style="height:320px;">
+                    <canvas id="radarProposed"
+                        data-p="{{ proposed.precision }}" data-r="{{ proposed.recall }}" data-f="{{ proposed.f1_overall }}" data-a="{{ proposed.accuracy }}" data-c="{{ proposed.catalog_coverage }}" data-w="{{ proposed.fwri }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4 h-100 shadow-sm border-primary">
+                <h6 class="fw-bold mb-4 text-center">BERT Performance (Bar)</h6>
+                <div style="height:320px;">
+                    <canvas id="barProposed"
+                       data-ndcg="{{ proposed.ndcg_k }}" data-hr="{{ proposed.hit_rate_k }}" data-mrr="{{ proposed.mrr }}">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── FULL METRICS TABLE ────────────────────────────────────── -->
     <div class="mt-5 pt-3">
         <h4 class="section-heading text-center mx-auto" style="max-width:max-content;">
@@ -671,6 +749,76 @@
             plugins: { legend: { display: true, position: 'bottom' } }
         }
     });
+
+    // ── INDIVIDUAL CHARTS ───────────────────────────────────────
+    var indRadarLabels = ['Precision', 'Recall', 'F1 Score', 'Accuracy', 'Catalog Cov', 'FWRI'];
+    var indBarLabels = ['NDCG@50', 'Hit Rate@50', 'MRR'];
+
+    function createIndRadar(id, color, alpha) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        new Chart(el.getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: indRadarLabels,
+                datasets: [{
+                    label: 'Score',
+                    data: [
+                        parseFloat(el.dataset.p),
+                        parseFloat(el.dataset.r),
+                        parseFloat(el.dataset.f),
+                        parseFloat(el.dataset.a),
+                        parseFloat(el.dataset.c),
+                        parseFloat(el.dataset.w)
+                    ],
+                    borderColor: color,
+                    backgroundColor: alpha,
+                    pointBackgroundColor: color
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { r: { suggestedMin: 0, suggestedMax: 1 } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function createIndBar(id, color) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        new Chart(el.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: indBarLabels,
+                datasets: [{
+                    label: 'Score',
+                    data: [
+                        parseFloat(el.dataset.ndcg),
+                        parseFloat(el.dataset.hr),
+                        parseFloat(el.dataset.mrr)
+                    ],
+                    backgroundColor: color,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, max: 1 } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    createIndRadar('radarExact', colors[0], alphas[0]);
+    createIndBar('barExact', colors[0]);
+
+    createIndRadar('radarTfidf', colors[1], alphas[1]);
+    createIndBar('barTfidf', colors[1]);
+
+    createIndRadar('radarProposed', colors[2], alphas[2]);
+    createIndBar('barProposed', colors[2]);
+
 </script>
 {% endif %}
 

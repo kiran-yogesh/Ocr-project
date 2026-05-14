@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import re
@@ -1663,6 +1662,339 @@ def register_food_term(term: str, aliases: "list[str] | None" = None) -> None:
 def register_brand(brand_name: str) -> None:
     """Register a new brand prefix for automatic stripping during normalisation."""
     _KNOWN_BRANDS.add(brand_name.lower().strip())
+
+
+# ---------------------------------------------------------------------------
+# GROCERY IMAGE CLASSIFIER
+# ---------------------------------------------------------------------------
+#
+# Two-stage gate called BEFORE running PaddleOCR on an upload:
+#
+#   Stage 1 (primary)  — Anthropic vision API: asks Claude whether the image
+#                        is a grocery bill or grocery product photo.
+#   Stage 2 (fallback) — OCR-text signal analysis: counts grocery-related
+#                        tokens (prices, units, food vocab) in the raw OCR
+#                        output that the caller optionally provides.
+#
+# Usage in app.py (before extract_grocery_items):
+#
+#   ok, reason = classify_image_for_grocery(path)
+#   if not ok:
+#       return render_template("upload.html", error=reason)
+# ---------------------------------------------------------------------------
+
+# Minimum number of grocery signals required for the OCR-text fallback gate
+_MIN_GROCERY_SIGNALS: int = 3
+
+# Grocery-signal patterns for the fallback (price symbols, units, store names)
+_PRICE_SIGNAL_RE = re.compile(
+    r"₹|rs\.?\s*\d|inr|\$\d|£\d|€\d|aed|\d+\.\d{2}",
+    re.IGNORECASE,
+)
+_UNIT_SIGNAL_RE = re.compile(
+    r"\b(?:" + QUANTITY_UNITS + r")\b",
+    re.IGNORECASE,
+)
+_STORE_SIGNAL_RE = re.compile(
+    r"dmart|bigbasket|blinkit|zepto|jiomart|reliance\s*fresh"
+    r"|swiggy\s*instamart|amazon\s*fresh|grofers|dunzo"
+    r"|walmart|tesco|costco|kroger|aldi|lidl|sainsbury"
+    r"|whole\s*foods|trader\s*joe|supermarket|hypermarket"
+    r"|grocery|superstore|provision",
+    re.IGNORECASE,
+)
+
+
+def _flatten_ocr_to_text(raw_ocr_result) -> str:
+    """Collapse a PaddleOCR result into a single plain-text string."""
+    lines: list[str] = []
+    if isinstance(raw_ocr_result, str):
+        return raw_ocr_result
+    if not isinstance(raw_ocr_result, list):
+        return ""
+    for page in raw_ocr_result:
+        if not isinstance(page, list):
+            continue
+        for word_info in page:
+            try:
+                text = word_info[1][0]
+                lines.append(str(text))
+            except (IndexError, TypeError):
+                pass
+    return " ".join(lines)
+
+
+def _ocr_text_is_grocery(raw_ocr_result) -> tuple[bool, int]:
+    """
+    Count grocery signals in raw PaddleOCR output.
+    Returns (is_grocery, signal_count).
+    """
+    text = _flatten_ocr_to_text(raw_ocr_result)
+    if not text.strip():
+        return False, 0
+
+    signals = 0
+
+    # Price signals
+    if _PRICE_SIGNAL_RE.search(text):
+        signals += 2  # strong signal
+
+    # Unit signals (each distinct unit match counts once)
+    unit_matches = set(m.group().lower() for m in _UNIT_SIGNAL_RE.finditer(text))
+    signals += min(len(unit_matches), 3)  # cap at 3
+
+    # Store name signals
+    if _STORE_SIGNAL_RE.search(text):
+        signals += 2
+
+    # Food vocab signals
+    text_lower = text.lower()
+    food_hits = sum(
+        1 for term in _FOOD_SEEDS
+        if len(term) >= 4 and term in text_lower
+    )
+    signals += min(food_hits, 4)  # cap at 4
+
+    return signals >= _MIN_GROCERY_SIGNALS, signals
+
+
+def _vision_api_classify(image_path: str) -> tuple[bool, str]:
+    """
+    Use the Anthropic vision API to classify the image.
+    Returns (is_grocery, reason_message).
+    Raises ImportError when the `anthropic` package is unavailable.
+    """
+    import base64
+    import anthropic as _anthropic  # type: ignore
+
+    with open(image_path, "rb") as fh:
+        img_bytes = fh.read()
+    img_b64 = base64.standard_b64encode(img_bytes).decode()
+
+    # Detect media type from file header
+    if img_bytes[:4] == b"\x89PNG":
+        media_type = "image/png"
+    elif img_bytes[:2] == b"\xff\xd8":
+        media_type = "image/jpeg"
+    elif img_bytes[:4] == b"RIFF" and img_bytes[8:12] == b"WEBP":
+        media_type = "image/webp"
+    else:
+        media_type = "image/jpeg"  # safe default
+
+    client = _anthropic.Anthropic()
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=64,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": img_b64,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "Is this image a grocery bill / receipt, "
+                            "or a grocery / food product photo? "
+                            "Reply with exactly one word: YES or NO."
+                        ),
+                    },
+                ],
+            }
+        ],
+    )
+    answer = response.content[0].text.strip().upper()
+    if answer.startswith("YES"):
+        return True, "ok"
+    return (
+        False,
+        "The uploaded image does not appear to be a grocery bill or grocery "
+        "product photo. Please upload a grocery receipt or a food/grocery "
+        "product image.",
+    )
+
+
+
+def _encode_image_b64(image_path: str) -> tuple[str, str]:
+    """Return (base64_data, media_type) for the image at *image_path*."""
+    import base64
+    with open(image_path, "rb") as fh:
+        img_bytes = fh.read()
+    img_b64 = base64.standard_b64encode(img_bytes).decode()
+    if img_bytes[:4] == b"\x89PNG":
+        media_type = "image/png"
+    elif img_bytes[:2] == b"\xff\xd8":
+        media_type = "image/jpeg"
+    elif img_bytes[:4] == b"RIFF" and img_bytes[8:12] == b"WEBP":
+        media_type = "image/webp"
+    else:
+        media_type = "image/jpeg"
+    return img_b64, media_type
+
+
+def detect_image_type(image_path: str) -> str:
+    """
+    Classify the uploaded image into one of three types:
+      'bill'    — grocery receipt / bill (multiple line items, prices)
+      'product' — single grocery product / food package photo
+      'other'   — not grocery-related (car, certificate, ID card, etc.)
+
+    Uses the Anthropic vision API. Falls back to 'bill' on any error so
+    the rest of the pipeline can still attempt OCR-text detection.
+    """
+    try:
+        import anthropic as _anthropic  # type: ignore
+        img_b64, media_type = _encode_image_b64(image_path)
+        client = _anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=16,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": img_b64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "Classify this image into exactly one category:\n"
+                                "A — grocery bill, receipt, or invoice listing multiple items with prices\n"
+                                "B — single grocery or food product package / photo\n"
+                                "C — neither (car, person, document, certificate, etc.)\n"
+                                "Reply with only the letter A, B, or C."
+                            ),
+                        },
+                    ],
+                }
+            ],
+        )
+        answer = response.content[0].text.strip().upper()
+        if answer.startswith("A"):
+            return "bill"
+        if answer.startswith("B"):
+            return "product"
+        return "other"
+    except ImportError:
+        logger.info("anthropic not installed — defaulting image type to 'bill'.")
+        return "bill"
+    except Exception as exc:
+        logger.warning("detect_image_type failed (%s) — defaulting to 'bill'.", exc)
+        return "bill"
+
+
+def extract_product_name_from_image(image_path: str) -> Optional[str]:
+    """
+    Given a grocery product / food package image, return the canonical
+    ingredient name (e.g. 'tomato', 'basmati rice', 'milk').
+
+    Uses the Anthropic vision API. Returns None if the name cannot be
+    determined or the API is unavailable.
+    """
+    try:
+        import anthropic as _anthropic  # type: ignore
+        img_b64, media_type = _encode_image_b64(image_path)
+        client = _anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=32,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": img_b64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "What is the main food or grocery ingredient shown in this image? "
+                                "Give ONLY the generic ingredient name in lowercase English "
+                                "(e.g. 'tomato', 'basmati rice', 'whole milk', 'sunflower oil'). "
+                                "Do NOT include brand names, quantities, or extra words. "
+                                "If you cannot identify a food item, reply: UNKNOWN"
+                            ),
+                        },
+                    ],
+                }
+            ],
+        )
+        raw = response.content[0].text.strip().lower()
+        if not raw or raw == "unknown" or len(raw) > 60:
+            return None
+        cleaned = clean_item_name(raw)
+        return cleaned if cleaned else raw
+    except ImportError:
+        logger.info("anthropic not installed — cannot extract product name from image.")
+        return None
+    except Exception as exc:
+        logger.warning("extract_product_name_from_image failed: %s", exc)
+        return None
+
+
+def classify_image_for_grocery(
+    image_path: str,
+    raw_ocr_result=None,
+) -> tuple[bool, str]:
+    """
+    Determine whether *image_path* is a grocery bill or grocery product image.
+
+    Returns ``(True, "ok")`` when the image is accepted, or
+    ``(False, <user-facing error message>)`` when it should be rejected.
+
+    Args:
+        image_path     : Path to the uploaded image file.
+        raw_ocr_result : (optional) PaddleOCR result already obtained for the
+                         image.  When provided, the OCR-text fallback uses it
+                         instead of running OCR a second time.
+
+    Strategy
+    --------
+    1. Try the Anthropic vision API (fast, accurate).
+    2. On any failure (package absent, network error, quota) fall back to
+       counting grocery signals in the OCR text.
+    3. If no OCR result was supplied for the fallback, the image is accepted
+       (fail-open) to avoid blocking valid uploads when the API is down.
+    """
+    # Stage 1 — Vision API
+    try:
+        return _vision_api_classify(image_path)
+    except ImportError:
+        logger.info("anthropic package not installed — using OCR-text fallback.")
+    except Exception as exc:
+        logger.warning("Vision API classify failed (%s) — falling back to OCR-text gate.", exc)
+
+    # Stage 2 — OCR-text signal fallback
+    if raw_ocr_result is not None:
+        is_grocery, signal_count = _ocr_text_is_grocery(raw_ocr_result)
+        logger.debug("OCR-text grocery signals: %d (threshold %d)", signal_count, _MIN_GROCERY_SIGNALS)
+        if not is_grocery:
+            return (
+                False,
+                "The uploaded image does not appear to be a grocery bill or grocery "
+                "product photo (too few grocery-related signals detected). "
+                "Please upload a grocery receipt or a food/grocery product image.",
+            )
+
+    # Fail-open: API unavailable and no OCR result to check
+    return True, "ok"
 
 
 # ---------------------------------------------------------------------------

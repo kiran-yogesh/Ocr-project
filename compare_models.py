@@ -25,10 +25,6 @@ except ImportError:
     _BASELINE_RETURNS_SCORES = False
 
 
-# ---------------------------------------------------------------------------
-# FIX-C2: Helper to load raw (un-normalised) inventory for the baseline.
-# FIX-CMP-5: tz_localize(None) for naive datetime arithmetic.
-# ---------------------------------------------------------------------------
 
 def _load_raw_inventory(username: str) -> tuple[list[str], dict[str, int]]:
     """

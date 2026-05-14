@@ -43,9 +43,9 @@ FIX-AUTO-NORM  Removed the hardcoded `replacements` dictionary from
              The vocabulary is built once at module load time from
              unique_norm_ingredients so the correction is always grounded
              in the actual dataset.  A token is only replaced when the
-             best fuzzy match scores ≥ SPELL_CORRECT_CUTOFF (default 88)
+             best fuzzy match scores >= SPELL_CORRECT_CUTOFF (default 88)
              and the candidate is strictly shorter or equal in edit distance
-             (prevents "pea" → "peanut" false corrections).
+             (prevents "pea" -> "peanut" false corrections).
 """
 
 from __future__ import annotations
@@ -77,6 +77,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 
+
 logger = logging.getLogger(__name__)
 
 p = inflect.engine()
@@ -91,8 +92,8 @@ nlp = spacy.load("en_core_web_sm")
 IGNORE_INGREDIENTS = {"water", "lukewarm water"}
 
 # Minimum fuzzy score for spell-correction to fire.
-# 88 is tight enough to reject "pea" → "peanut" (score ≈ 67) while
-# accepting "avccado" → "avocado" (score ≈ 91) and "toor dai" → "toor dal".
+# 88 is tight enough to reject "pea" -> "peanut" (score ~67) while
+# accepting "avccado" -> "avocado" (score ~91) and "toor dai" -> "toor dal".
 SPELL_CORRECT_CUTOFF = 88
 
 # Populated after the dataset is loaded (see _build_spell_vocab()).
@@ -120,13 +121,11 @@ def _spell_correct_token(token: str) -> str:
     """
     Return the best-matching vocabulary token if the fuzzy score meets
     SPELL_CORRECT_CUTOFF AND the candidate is not longer than the input
-    (prevents expansion like "pea" → "peanut").
+    (prevents expansion like "pea" -> "peanut").
 
     Returns the original token unchanged if no qualifying match is found.
     """
     if not _spell_vocab or len(token) < 3:
-        # Skip very short tokens (1-2 chars) — they produce
-        # more false positives than true corrections.
         return token
 
     match = process.extractOne(
@@ -139,7 +138,7 @@ def _spell_correct_token(token: str) -> str:
         return token
 
     candidate, score, _ = match
-    # Guard: never expand a token (e.g. "pea" → "peanut").
+    # Guard: never expand a token (e.g. "pea" -> "peanut").
     if len(candidate) > len(token) + 1:
         return token
 
@@ -149,24 +148,19 @@ def _spell_correct_token(token: str) -> str:
 # -----------------------------
 # Ingredient normalization  (FIX-NORM-CONTROLLED)
 # Controlled normalization that preserves important descriptors.
-# Previous version aggressively singularized + lemmatized ALL tokens,
-# collapsing "green chillies" → "chilli" and "cumin seeds" → "cumin".
 # -----------------------------
 
-# Words that MUST be preserved — they distinguish different ingredients
 _IMPORTANT_DESCRIPTORS = {
     "green", "red", "black", "white", "yellow", "brown", "dry", "dried",
     "raw", "ripe", "baby", "split", "whole", "roasted",
 }
 
-# Form keywords that MUST be preserved — "cumin seeds" ≠ "cumin powder"
 _FORM_KEYWORDS = {
     "seeds", "seed", "powder", "paste", "leaves", "leaf", "whole",
     "ground", "crushed", "flakes", "oil", "milk", "cream", "flour",
     "water", "juice",
 }
 
-# Cosmetic noise words that are safe to remove
 _REMOVE_WORDS = {
     "fresh", "freshly", "chopped", "cut", "finely", "thinly", "sliced",
     "diced", "minced", "grated", "peeled", "cleaned", "washed",
@@ -187,10 +181,6 @@ def normalize_ingredient(text: str) -> str:
     4. Remove cosmetic noise words (fresh, chopped, diced, etc.).
     5. Controlled singularization — ONLY on base words, NOT on
        important descriptors or form keywords.
-
-    Key principle: preserve specificity.
-    "green chillies" stays as "green chilli" (NOT "chilli").
-    "cumin seeds" stays as "cumin seeds" (NOT "cumin").
     """
     text = str(text).lower().strip()
 
@@ -199,32 +189,25 @@ def normalize_ingredient(text: str) -> str:
 
     original = text
 
-    # Step 1: normalise whitespace
     text = re.sub(r'\s+', ' ', text)
-
-    # Step 2: strip non-alpha characters (keep spaces)
     text = re.sub(r'[^a-zA-Z\s]', '', text)
 
-    # Step 3: per-token spell correction
     corrected_tokens = [_spell_correct_token(tok) for tok in text.split()]
     text = " ".join(corrected_tokens)
 
-    # Step 4: remove cosmetic noise words, preserve descriptors & form keywords
     words = text.split()
     kept_words = []
     for w in words:
         if w in _REMOVE_WORDS:
-            continue  # skip cosmetic noise
+            continue
         if w in _IMPORTANT_DESCRIPTORS or w in _FORM_KEYWORDS:
-            kept_words.append(w)  # preserve as-is, no singularization
+            kept_words.append(w)
         else:
-            # Step 5: controlled singularization — only on base nouns
             s = p.singular_noun(w)
             kept_words.append(s if s else w)
 
     result = " ".join(kept_words).strip()
 
-    # Special case: if result is empty after filtering, use original cleaned text
     if not result:
         result = text.strip()
 
@@ -271,9 +254,6 @@ def normalize_meal(text: str) -> str:
     """
     Map a Course/MealType string to one of:
     Breakfast, Lunch, Dinner, Snack, Dessert.
-
-    FIX-R9: Added explicit mappings for Side Dish / Condiment / Accompaniment.
-    FIX-REC-8: "sabzi" → "Dinner" is a design choice; documented.
     """
     text = str(text).lower().strip()
 
@@ -289,7 +269,6 @@ def normalize_meal(text: str) -> str:
         return "Dessert"
     elif any(word in text for word in ["idli", "dosa", "upma", "poha", "uttapam", "vada"]):
         return "Breakfast"
-    # FIX-R9: Side dishes / condiments are Dinner accompaniments
     elif any(word in text for word in ["side dish", "accompaniment", "condiment", "raita", "pickle"]):
         return "Dinner"
     elif any(word in text for word in [
@@ -305,10 +284,6 @@ def normalize_meal(text: str) -> str:
 
 # -----------------------------
 # Load inventory
-# FIX-R3: dropna() moved before groupby.
-# FIX-FINAL-1: Replaced hasattr dtype.tz check with .dt.tz property check,
-#              which correctly handles object-dtype columns containing
-#              tz-aware Timestamps.
 # -----------------------------
 
 def load_inventory(username=None):
@@ -364,11 +339,6 @@ def find_inventory_match(ingredient, inventory_keys, score_cutoff=85):
 
 # -----------------------------
 # Load dataset
-# FIX-REC-10: wrap batch encoding in try/except.
-# FIX-FINAL-2: added _load_failed flag so _ensure_embeddings() short-circuits
-#              instead of re-attempting to encode every ingredient on every call.
-# FIX-AUTO-NORM: _build_spell_vocab() called here, after unique_norm_ingredients
-#              is known, so spell-correction is grounded in the actual dataset.
 # -----------------------------
 
 df = pd.read_csv("Indian_Food_Dataset.csv")
@@ -398,13 +368,8 @@ df["Cleaned_Ingredients"] = df["Cleaned_Ingredients"].apply(
 
 unique_norm_ingredients = sorted(list(set(norm_map.values())))
 
-# FIX-AUTO-NORM: Build spell-correction vocabulary from the normalised
-# ingredient tokens so _spell_correct_token() is ready for any future
-# normalize_ingredient() call (e.g. from load_inventory at runtime).
 _build_spell_vocab(unique_norm_ingredients)
 
-# FIX-REC-10 + FIX-FINAL-2: guard batch encoding; set flag on failure so
-# _ensure_embeddings() does not repeatedly attempt futile re-encodes.
 _ingredient_embeddings_map: dict[str, np.ndarray] = {}
 _load_failed: bool = False
 
@@ -446,45 +411,31 @@ def _ensure_embeddings(items: list) -> None:
 # Scoring constants
 # -----------------------------
 
-# SIMILARITY_THRESHOLD: cosine similarity cutoff for an ingredient to count
-# as "matched". 0.55 catches near-synonyms (capsicum/bell pepper, curd/yogurt).
 SIMILARITY_THRESHOLD = 0.55
 
-# Proposed model weights (must sum to 1.0).
-# Expiry is highest to prioritise waste-reduction.
 WEIGHT_SEMANTIC  = 0.25
 WEIGHT_COVERAGE  = 0.35
 WEIGHT_EXPIRY    = 0.40
 
-# Minimum Final_Score to predict a recipe as "recommended".
-PROPOSED_SCORE_THRESHOLD = 0.35
-
-# Minimum Coverage to label a recipe as "relevant" (y_true=1).
+PROPOSED_SCORE_THRESHOLD     = 0.35
 PROPOSED_RELEVANCE_THRESHOLD = 0.25
 
-# Baseline thresholds — calibrated to baseline scoring distribution.
 BASELINE_SCORE_THRESHOLD     = 0.25
 BASELINE_RELEVANCE_THRESHOLD = 0.25
 
 # -----------------------------
 # Disambiguation Shield
 # -----------------------------
-# STRICT_THRESHOLD: items in the shield map must hit this similarity to match.
-# Prevents "egg" (0.6) matching "eggplant", or "pea" (0.45) matching "peanut".
 STRICT_THRESHOLD = 0.85
 
 DISAMBIGUATION_MAP = {
     "egg":      {"eggplant"},
-    "eggplant": {"egg"},          # reverse: recipe wants eggplant, inv has egg
+    "eggplant": {"egg"},
     "pea":      {"peanut"},
     "pear":     {"pearl millet"},
     "corn":     {"baby corn"},
 }
 
-# SYNONYM_MAP: forced matches — if a recipe ingredient maps here,
-# the corresponding inventory item is treated as a guaranteed match.
-# This ensures "lemon juice" in a recipe is always satisfied by "lemon" in
-# inventory (and vice-versa) regardless of semantic model score.
 SYNONYM_MAP: dict[str, str] = {
     "lemon juice":  "lemon",
     "lime juice":   "lime",
@@ -495,10 +446,6 @@ SYNONYM_MAP: dict[str, str] = {
 
 # -----------------------------
 # Scoring logic
-# FIX-R4: Batch _ensure_embeddings moved outside per-row loop.
-# FIX-R5: Deep-copy Cleaned_Ingredients column.
-# FIX-FINAL-3: Removed dead append calls in first loop (BUG-FIX-2 overwrites
-#              them; keeping both was confusing and wasteful).
 # -----------------------------
 
 def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
@@ -507,19 +454,15 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
         df_in["Final_Score"] = 0
         return df_in
 
-    # FIX-R4: collect all unique recipe ingredients ONCE before the row loop
     all_recipe_ings: set[str] = set()
     for ings in df_in["Cleaned_Ingredients"]:
         if isinstance(ings, list):
             all_recipe_ings.update(ings)
     _ensure_embeddings(list(all_recipe_ings))
-    # FIX-REC-4: also ensure inventory items are encoded (they come from DB,
-    # not the dataset, so may be absent from the map)
     _ensure_embeddings(inventory_items)
 
     inventory_embs = np.array([_ingredient_embeddings_map[i] for i in inventory_items])
 
-    # FIX-R5: deep-copy ingredient lists to avoid mutating the global df
     df_out = df_in.copy()
     df_out["Cleaned_Ingredients"] = [
         copy.deepcopy(ings) if isinstance(ings, list) else ings
@@ -546,7 +489,6 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
             expiry_list.append(0)
             continue
 
-        # FIX-R4: embeddings guaranteed to exist — no encode call inside loop
         recipe_ing_embs = np.array([
             _ingredient_embeddings_map[ing] for ing in valid_ingredients
         ])
@@ -556,9 +498,6 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
         semantic_score = np.mean(best_matches)
         semantic_scores.append(semantic_score)
 
-        # FIX-FINAL-3: expiry_scores still accumulated here (needed later).
-        # matched/missed are computed cleanly via BUG-FIX-1/2 loops below;
-        # the earlier redundant append calls have been removed.
         expiry_scores = []
         matched_raw   = []
 
@@ -567,16 +506,13 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
             best_sim     = sim_matrix[i][best_inv_idx]
             match_name   = inventory_items[best_inv_idx]
 
-            # APPLY SYNONYM MAP (forced positive matches)
             synonym_target = SYNONYM_MAP.get(ing)
             if synonym_target and synonym_target in inventory_items:
-                # Override: treat this as a full match
                 matched_raw.append(synonym_target)
                 days = inventory_dict.get(synonym_target, 30)
                 expiry_scores.append(max(0, (30 - days) / 30))
                 continue
 
-            # APPLY DISAMBIGUATION SHIELD
             actual_threshold = SIMILARITY_THRESHOLD
             if ing in DISAMBIGUATION_MAP and match_name in DISAMBIGUATION_MAP[ing]:
                 actual_threshold = STRICT_THRESHOLD
@@ -590,12 +526,9 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
 
         matched = list(set(matched_raw))
 
-        # BUG-FIX-1: Count matched ingredients before dedup so coverage
-        # reflects actual ingredient match rate, not unique inventory items.
         n_matched = 0
         for i in range(len(valid_ingredients)):
             ing_i = valid_ingredients[i]
-            # SYNONYM_MAP: force-count as matched
             syn_target = SYNONYM_MAP.get(ing_i)
             if syn_target and syn_target in inventory_items:
                 n_matched += 1
@@ -616,11 +549,9 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
 
         coverage = n_matched / len(valid_ingredients) if valid_ingredients else 1.0
 
-        # BUG-FIX-2: Derive missed from the same threshold check as coverage
         missed = []
         for i in range(len(valid_ingredients)):
             ing_i = valid_ingredients[i]
-            # SYNONYM_MAP: force-count as matched (not missed)
             syn_target = SYNONYM_MAP.get(ing_i)
             if syn_target and syn_target in inventory_items:
                 continue
@@ -637,7 +568,7 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
 
             if best_sim <= thresh:
                 missed.append(ing_i)
-        # Deduplicate missed while preserving order
+
         seen_missed: set = set()
         missed_dedup = []
         for m in missed:
@@ -670,8 +601,6 @@ def compute_scores(df_in, inventory_items, inventory_dict, inventory_text):
 
 # -----------------------------
 # Recommend recipes
-# FIX-R10: Global pre-filter removes Snack/Dessert unless explicitly requested.
-# FIX-REC-2: Deep-copy Cleaned_Ingredients immediately after df.copy().
 # -----------------------------
 
 def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_term="", offset=0):
@@ -690,11 +619,9 @@ def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_te
     conn.close()
 
     def get_filtered_df(df_in, c, d, m, s):
-        # FIX-R10: Always exclude Snack/Dessert unless the caller requests them
         if m.lower() not in {"snack", "dessert", "any"}:
             df_in = df_in[~df_in["MealType"].str.lower().isin(["snack", "dessert"])]
 
-        # Apply keyword search if search_term is provided
         if s and s.strip():
             s_clean = s.strip().lower()
             df_in = df_in[
@@ -736,7 +663,6 @@ def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_te
 
         return df_in, f"Displaying all results{search_suffix}"
 
-    # FIX-REC-2: deep-copy ingredient lists immediately after df.copy()
     df_base = df.copy()
     df_base["Cleaned_Ingredients"] = [
         copy.deepcopy(ings) if isinstance(ings, list) else ings
@@ -767,10 +693,6 @@ def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_te
             if i.lower() not in IGNORE_INGREDIENTS
         ]
         n_valid = len(valid_ings)
-
-        # BUG-FIX-3: derive matched count from coverage_pct to correctly
-        # handle cases where multiple recipe ingredients match the same
-        # inventory item (set-dedup on r["Matched"] would under-count).
         n_matched_display = round(coverage_pct / 100 * n_valid) if n_valid else 0
 
         explanation = (
@@ -787,10 +709,8 @@ def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_te
             "diet":            r["Diet"],
             "semantic_score":  round(r["Semantic_Score"], 2),
             "coverage_score":  r["Coverage"],
-            # freshness_score: higher = more urgent items used (better for
-            # waste reduction). NOT an environmental eco-score.
             "freshness_score": r["Expiry"],
-            "expiry_score":    r["Expiry"],   # kept for backward compat
+            "expiry_score":    r["Expiry"],
             "final_score":     round(r["Final_Score"] * 100, 2),
             "matched": list(r["Matched"]) if not isinstance(r["Matched"], str) else [r["Matched"]],
             "missed":  list(r["Missed"])  if not isinstance(r["Missed"],  str) else [r["Missed"]],
@@ -802,11 +722,10 @@ def recommend_recipes(username, cuisine="Any", diet="Any", meal="Any", search_te
 
 # -----------------------------
 # PDF Generation
-# FIX-R8: exist_ok=True added to makedirs.
 # -----------------------------
 
 def generate_recipe_pdf(recipe_name, matched_ingredients, missed_ingredients, instructions):
-    os.makedirs("temp_docs", exist_ok=True)  # FIX-R8
+    os.makedirs("temp_docs", exist_ok=True)
 
     pdf_filename = f"temp_docs/{recipe_name.replace(' ', '_')}.pdf"
     doc      = SimpleDocTemplate(pdf_filename, pagesize=letter)
@@ -831,8 +750,6 @@ def generate_recipe_pdf(recipe_name, matched_ingredients, missed_ingredients, in
         elements.append(Paragraph("None", styles["Normal"]))
     elements.append(Spacer(1, 0.2 * inch))
 
-    # FIX-REC-7: empty string "" and empty list [] both correctly skip this
-    # section because `if missed_ingredients` is False for both.
     if missed_ingredients:
         elements.append(Paragraph("Items to Buy:", styles["Heading2"]))
         items = (
@@ -894,8 +811,8 @@ def evaluate_recommendation_system(
     """
     Comprehensive evaluation of the recommendation system.
 
-    FIX-R6: ndcg_score k clamped to min(8, len(y_true)).
-    FIX-REC-9: _safe_confusion_matrix simplified — labels=[0,1] guarantees 2×2.
+    FIX-R6:        ndcg_score k clamped to min(8, len(y_true)).
+    FIX-REC-9:     _safe_confusion_matrix simplified — labels=[0,1] guarantees 2x2.
     """
     if scores_df.empty:
         return _empty_result(k)
@@ -914,8 +831,6 @@ def evaluate_recommendation_system(
     df_sorted = scores_df.sort_values("Final_Score", ascending=False).reset_index(drop=True)
     k = min(k, len(df_sorted))
 
-    # Relevance uses BOTH Coverage and a minimum score floor so the label is
-    # consistent regardless of which model computed Coverage.
     _RELEVANCE_SCORE_FLOOR = 0.15
     y_true   = (
         (df_sorted["Coverage"] >= relevance_threshold) &
@@ -926,7 +841,6 @@ def evaluate_recommendation_system(
 
     total_relevant = int(y_true.sum())
 
-    # FIX-R6: guard k against len(y_true)
     k_ndcg8 = min(8, len(y_true))
     ndcg_8 = (
         ndcg_score([y_true], [y_scores], k=k_ndcg8)
@@ -967,7 +881,6 @@ def evaluate_recommendation_system(
         if inventory_dict else 0.0
     )
 
-    # FIX-REC-9: labels=[0,1] guarantees 2×2; simplified extraction
     tn, fp, fn, tp = _safe_confusion_matrix(y_true, y_pred)
     precision_cls  = precision_score(y_true, y_pred, zero_division=0)
     recall_cls     = recall_score(y_true, y_pred, zero_division=0)
@@ -1021,12 +934,6 @@ def evaluate_recommendation_system(
         "weighted_expiry":    round(float(weighted_expiry), 3),
         "expiry_utilisation": round(expiry_utilisation, 3),
         "fwri":               round(float(fwri), 3),
-        "ocr": {
-            "cer":        0.018,
-            "wer":        0.042,
-            "kie_f1":     0.96,
-            "match_rate": 0.98,
-        },
     }
 
 
@@ -1055,7 +962,6 @@ def calculate_system_metrics(username, user_inventory, df, compute_scores_fn,
         inventory_dict = {item: 30 for item in user_inventory}
 
     inventory_text = " ".join(user_inventory)
-    # FIX-REC-6: pass deep copy to avoid corrupting global df
     scores_df = compute_scores_fn(
         df.copy(deep=True), user_inventory, inventory_dict, inventory_text
     )
@@ -1114,19 +1020,16 @@ def _average_precision(y_true: np.ndarray, k: int) -> float:
 
 def _safe_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray):
     """
-    FIX-REC-9: labels=[0,1] forces a 2×2 matrix even when one class is absent.
-    The earlier FIX-R7 (1×1 branch) is no longer needed and has been removed.
+    FIX-REC-9: labels=[0,1] forces a 2x2 matrix even when one class is absent.
     """
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
-    # labels=[0,1] guarantees shape (2,2); ravel() is always safe here
     tn, fp, fn, tp = cm.ravel()
     return tn, fp, fn, tp
 
 
 def _empty_result(k: int) -> dict:
     """
-    FIX-FINAL-4: Restored full body — was completely missing (file truncated).
-    Returns a zeroed-out result dict with the same keys as
+    FIX-FINAL-4: Returns a zeroed-out result dict with the same keys as
     evaluate_recommendation_system(), used when inventory is empty or
     scores_df is empty.
     """
@@ -1157,10 +1060,4 @@ def _empty_result(k: int) -> dict:
         "weighted_expiry":    0.0,
         "expiry_utilisation": 0.0,
         "fwri":               0.0,
-        "ocr": {
-            "cer":        0.0,
-            "wer":        0.0,
-            "kie_f1":     0.0,
-            "match_rate": 0.0,
-        },
     }

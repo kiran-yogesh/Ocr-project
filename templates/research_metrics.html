@@ -116,40 +116,6 @@
     </div>
 </div>
 
-<!-- 📸 OCR PERFORMANCE METRICS -->
-<div class="row g-4 mb-5">
-    <div class="col-12">
-        <div class="glass-card border-slate p-4">
-            <h5 class="fw-800 mb-4"><i class="fas fa-camera-retro me-2 text-dark"></i>OCR PERFORMANCE METRICS</h5>
-            <div class="row g-3 text-center">
-                <div class="col-md-3">
-                    <div class="p-3 bg-light rounded-4 border">
-                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.cer * 100) | round(1) }}%</h4>
-                        <small class="text-dim fw-bold x-small">CER</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 bg-light rounded-4 border">
-                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.wer * 100) | round(1) }}%</h4>
-                        <small class="text-dim fw-bold x-small">WER</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 bg-light rounded-4 border text-primary">
-                        <h4 class="fw-800 mb-0">{{ metrics.ocr.kie_f1 }}</h4>
-                        <small class="text-dim fw-bold x-small">KIE F1-Score</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 bg-light rounded-4 border text-success">
-                        <h4 class="fw-800 mb-0">{{ (metrics.ocr.match_rate * 100) | round(0) }}%</h4>
-                        <small class="text-dim fw-bold x-small">Match Rate</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Metric Dictionary Section -->
 <div class="mt-5 pt-5 border-top border-slate">
@@ -157,8 +123,29 @@
     <div class="row g-4">
         <div class="col-md-4">
             <div class="glass-card h-100 p-3 border-slate">
-                <h6 class="fw-800 text-primary small text-uppercase">F1 Overall</h6>
-                <p class="x-small text-muted mb-0">The harmonic mean of precision and recall. It represents the overall classification accuracy of the model.</p>
+                <h6 class="fw-800 text-primary small text-uppercase">Precision</h6>
+                <p class="x-small text-muted mb-0">The ratio of correctly predicted positive observations to the total predicted positive observations.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">Recall</h6>
+                <p class="x-small text-muted mb-0">The ratio of correctly predicted positive observations to all observations in the actual class.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">F1 Score</h6>
+                <p class="x-small text-muted mb-0">The harmonic mean of precision and recall. It represents the overall balance between accuracy and completeness.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="glass-card h-100 p-3 border-slate">
+                <h6 class="fw-800 text-primary small text-uppercase">Accuracy</h6>
+                <p class="x-small text-muted mb-0">The ratio of correctly predicted observations to the total observations.</p>
             </div>
         </div>
 
@@ -174,30 +161,7 @@
                 <p class="x-small text-muted mb-0">Food Waste Reduction Index. A custom metric measuring efficiency in prioritizing ingredients nearing expiry.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="glass-card h-100 p-3 border-slate">
-                <h6 class="fw-800 text-primary small text-uppercase">CER</h6>
-                <p class="x-small text-muted mb-0">Character Error Rate. Measures individual character flips (e.g., 'S' vs '5') in OCR processing.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="glass-card h-100 p-3 border-slate">
-                <h6 class="fw-800 text-primary small text-uppercase">WER</h6>
-                <p class="x-small text-muted mb-0">Word Error Rate. Measures if whole words (like "Milk" or "Butter") are read correctly on bills.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="glass-card h-100 p-3 border-slate">
-                <h6 class="fw-800 text-primary small text-uppercase">KIE</h6>
-                <p class="x-small text-muted mb-0">Key Information Extraction. Evaluates if the AI correctly identified "Items", "Prices", or "Quantities".</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="glass-card h-100 p-3 border-slate">
-                <h6 class="fw-800 text-primary small text-uppercase">Match Rate</h6>
-                <p class="x-small text-muted mb-0">The percentage of extracted text successfully mapped to valid database ingredients via fuzzy matching logic.</p>
-            </div>
-        </div>
+
     </div>
 </div>
 {% endif %}
